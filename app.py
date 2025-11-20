@@ -140,7 +140,7 @@ def show_login_page():
                         st.session_state.user_phone = user_record['Phone'].iloc[0]
                         st.session_state.driver_accepted_trip = None # Initialise le statut de course du driver
                         st.success(f"Connexion réussie ! Bienvenue {st.session_state.user_name}.")
-                        st.experimental_rerun() # Rafraîchit pour afficher la bonne page
+                        st.rerun()
                     else:
                         st.error("Mot de passe incorrect.")
                 else:
@@ -202,7 +202,7 @@ def show_register_page():
                         users_sheet.append_row(new_user_data)
                         st.success("Compte créé avec succès ! Vous pouvez maintenant vous connecter.")
                         st.session_state.page = "login"
-                        st.experimental_rerun()
+                        st.rerun()
 
     if st.button("Retour à la connexion"):
         st.session_state.page = "login"
@@ -284,7 +284,7 @@ def show_driver_page():
                 worksheet.update_cell(complete_trip_index, trips_df.columns.get_loc('Status') + 1, 'Completed')
                 st.session_state.driver_accepted_trip = None
                 st.success("Course marquée comme terminée ! Bien joué.")
-                st.experimental_rerun()
+                st.rerun()
                 
         # Le driver ne peut pas voir/accepter d'autres courses tant qu'il en a une
         return 
@@ -323,7 +323,7 @@ def show_driver_page():
                     worksheet.update_cell(gs_row_index, trips_df.columns.get_loc('Driver') + 1, st.session_state.user_name)
                     st.success(f"Course acceptée : {row['Start Point']} -> {row['End Point']}")
                     st.session_state.driver_accepted_trip = row['Start Point'] + " -> " + row['End Point']
-                    st.experimental_rerun()
+                    st.rerun()
 
         # Le bouton Rejeter est conditionnel (Règle : on rejette si on a déjà accepté une course)
         with col2:
@@ -348,7 +348,7 @@ if st.session_state.logged_in:
     if st.sidebar.button("Déconnexion"):
         st.session_state.logged_in = False
         st.session_state.page = "login"
-        st.experimental_rerun()
+        st.rerun()
         
     st.markdown("---") # Séparation visuelle
 
@@ -369,6 +369,7 @@ elif st.session_state.logged_in:
 else:
     # Par défaut (non connecté)
     show_login_page()
+
 
 
 
