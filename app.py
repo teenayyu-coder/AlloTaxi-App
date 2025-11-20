@@ -74,14 +74,26 @@ def get_worksheet(sheet_name):
 
 def fetch_data(sheet_name):
     worksheet = get_worksheet(sheet_name)
-    if worksheet:
-        data = worksheet.get_all_records()
-        df = pd.DataFrame(data)
+    if not worksheet:
+        return pd.DataFrame()
 
-        # 🔥 Convertit toutes les colonnes en string AVANT de les nettoyer
-        df.columns = df.columns.map(lambda x: str(x).strip())
+    data = worksheet.get_all_records()
 
-        return df
+    # Si la feuille est vide, créer DF avec colonnes attendues
+    if not data:
+        return pd.DataFrame(columns=[
+            "Category",
+            "First Name",
+            "Phone",
+            "Password",
+            "Vehicle Brand",
+            "Vehicle Type",
+            "Engine Displacement"
+        ])
+
+    df = pd.DataFrame(data)
+    df.columns = df.columns.map(lambda x: str(x).strip())
+    return df
     
     return pd.DataFrame()
 
@@ -357,6 +369,7 @@ elif st.session_state.logged_in:
 else:
     # Par défaut (non connecté)
     show_login_page()
+
 
 
 
