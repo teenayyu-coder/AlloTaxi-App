@@ -133,7 +133,6 @@ def show_login_page():
     st.subheader("Nouveau compte ?")
     if st.button("Créer un compte"):
         st.session_state.page = "register"
-        st.experimental_rerun()
 
 def show_register_page():
     """Affiche la page d'inscription."""
@@ -186,7 +185,6 @@ def show_register_page():
 
     if st.button("Retour à la connexion"):
         st.session_state.page = "login"
-        st.experimental_rerun()
 
 # --- PAGES CLIENT/DRIVER ---
 
@@ -350,4 +348,5 @@ elif st.session_state.logged_in:
 else:
     # Par défaut (non connecté)
     show_login_page()
+
 
