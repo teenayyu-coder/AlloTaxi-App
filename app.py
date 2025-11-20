@@ -45,7 +45,7 @@ def get_google_sheet_client():
         scope = ["https://spreadsheets.google.com/feeds", 'https://www.googleapis.com/auth/drive']
         
         # Crée les identifiants à partir du dictionnaire de secrets
-        creds = ServiceAccountCredentials.from_json(creds_json, scope)
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_json, scope)
         
         client = gspread.authorize(creds)
         return client
@@ -350,3 +350,4 @@ elif st.session_state.logged_in:
 else:
     # Par défaut (non connecté)
     show_login_page()
+
