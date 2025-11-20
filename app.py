@@ -73,11 +73,12 @@ def get_worksheet(sheet_name):
     return None
 
 def fetch_data(sheet_name):
-    """Récupère toutes les données d'une feuille et les retourne en DataFrame."""
     worksheet = get_worksheet(sheet_name)
     if worksheet:
         data = worksheet.get_all_records()
-        return pd.DataFrame(data)
+        df = pd.DataFrame(data)
+        df.columns = df.columns.str.strip() 
+        return df
     return pd.DataFrame()
 
 def hash_password(password):
@@ -161,6 +162,9 @@ def show_register_page():
             else:
                 # Vérification de l'unicité du prénom
                 users_df = fetch_data('Users')
+                if "First Name" not in users_df.columns:
+                    st.error(f"❌ La colonne 'First Name' est manquante. Colonnes trouvées : {users_df.columns.tolist()}")
+                    return
                 if first_name in users_df['First Name'].values:
                     st.error("Ce Prénom est déjà utilisé. Veuillez en choisir un autre.")
                 else:
@@ -348,5 +352,6 @@ elif st.session_state.logged_in:
 else:
     # Par défaut (non connecté)
     show_login_page()
+
 
 
