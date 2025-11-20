@@ -165,6 +165,7 @@ def show_register_page():
                 if "First Name" not in users_df.columns:
                     st.error(f"❌ La colonne 'First Name' est manquante. Colonnes trouvées : {users_df.columns.tolist()}")
                     return
+                    
                 if first_name in users_df['First Name'].values:
                     st.error("Ce Prénom est déjà utilisé. Veuillez en choisir un autre.")
                 else:
@@ -352,6 +353,7 @@ elif st.session_state.logged_in:
 else:
     # Par défaut (non connecté)
     show_login_page()
+
 
 
 
