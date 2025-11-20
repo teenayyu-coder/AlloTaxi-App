@@ -15,28 +15,45 @@ st.set_page_config(
 
 # Fonction pour charger le CSS
 def load_css(file_name):
-    with open(file_name) as f:
-        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+    # En production (Streamlit Cloud), cette méthode lit le fichier local.
+    try:
+        with open(file_name) as f:
+            st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+    except FileNotFoundError:
+        # En cas d'erreur de lecture sur certains environnements de déploiement,
+        # on pourrait insérer le CSS directement ici si besoin.
+        st.warning(f"Le fichier CSS '{file_name}' n'a pas été trouvé. L'application utilisera le style par défaut.")
+        pass
 
 # Charge le fichier CSS pour le design moderne et mobile
 load_css("style.css")
 
-# --- CONNEXION GOOGLE SHEETS ---
+# --- CONNEXION GOOGLE SHEETS SÉCURISÉE (VIA SECRETS) ---
 
-# Remplacez 'VOTRE_ID_DE_FEUILLE_GOOGLE_SHEET' par l'ID de votre document
+# ID de votre document Google Sheet (récupéré de votre entrée)
 GOOGLE_SHEET_ID = "1JUG3IuVPrIDkDqLxaRwfZh1ArWYarrS4pQIOSqDE1WY"
 
 @st.cache_resource
 def get_google_sheet_client():
-    """Initialise et retourne le client gspread."""
+    """Initialise et retourne le client gspread en utilisant les secrets Streamlit."""
     try:
-        # Utilise le fichier de clé de service JSON que vous avez téléchargé
+        # Récupère les informations d'authentification depuis st.secrets
+        # La clé 'gcp_service_account' correspond à la section [gcp_service_account] dans secrets.toml
+        creds_json = st.secrets["gcp_service_account"]
+        
+        # Le scope est nécessaire pour indiquer les permissions demandées
         scope = ["https://spreadsheets.google.com/feeds", 'https://www.googleapis.com/auth/drive']
-        creds = ServiceAccountCredentials.from_json_keyfile_name('gcp_credentials.json', scope)
+        
+        # Crée les identifiants à partir du dictionnaire de secrets
+        creds = ServiceAccountCredentials.from_json(creds_json, scope)
+        
         client = gspread.authorize(creds)
         return client
+    except KeyError:
+        st.error("Erreur de configuration : Le secret 'gcp_service_account' n'est pas trouvé. Veuillez vérifier les paramètres 'Secrets' de votre application Streamlit.")
+        return None
     except Exception as e:
-        st.error(f"Erreur de connexion à Google Sheets. Avez-vous mis le fichier gcp_credentials.json dans le dossier ? Détail: {e}")
+        st.error(f"Erreur de connexion à Google Sheets. Détail: {e}")
         return None
 
 client = get_google_sheet_client()
@@ -289,11 +306,14 @@ def show_driver_page():
                     st.session_state.driver_accepted_trip = row['Start Point'] + " -> " + row['End Point']
                     st.experimental_rerun()
 
-        # Le bouton Rejeter est conditionnel (Règle : on rejette si on a déjà une course)
+        # Le bouton Rejeter est conditionnel (Règle : on rejette si on a déjà accepté une course)
         with col2:
+            # Règle : Le driver peut cliquer sur "Rejeter" uniquement s’il a déjà accepté une course.
+            # J'ai interprété cela comme : il ne peut pas rejeter une course non acceptée par lui. 
+            # Si vous vouliez qu'il puisse rejeter une course AVANT de l'accepter, il faudrait changer la logique.
+            # Dans le contexte d'une liste de courses disponibles, le bouton Rejeter est désactivé ici.
             if st.button("Rejeter la course", key=f"reject_{index}", disabled=True):
-                 # Le bouton est désactivé si le driver n'a pas de course, conformément à la règle
-                 st.info("Vous ne pouvez rejeter que si vous avez déjà accepté une course.")
+                 st.info("Pour le moment, vous ne pouvez rejeter que si vous avez déjà accepté une course (cette fonctionnalité n'est pas encore implémentée pour les courses non acceptées).")
                  pass
 
 # --- GESTION DE LA NAVIGATION PRINCIPALE ---
@@ -315,7 +335,7 @@ if st.session_state.logged_in:
 
 # Logique de routage/affichage
 if not client:
-    st.error("L'application ne peut pas se connecter à Google Sheets. Veuillez vérifier votre configuration.")
+    st.error("L'application ne peut pas se connecter à Google Sheets. Veuillez vérifier votre configuration dans les secrets Streamlit.")
 elif st.session_state.page == "register":
     show_register_page()
 elif st.session_state.logged_in:
