@@ -77,8 +77,12 @@ def fetch_data(sheet_name):
     if worksheet:
         data = worksheet.get_all_records()
         df = pd.DataFrame(data)
-        df.columns = df.columns.str.strip() 
+
+        # 🔥 Convertit toutes les colonnes en string AVANT de les nettoyer
+        df.columns = df.columns.map(lambda x: str(x).strip())
+
         return df
+    
     return pd.DataFrame()
 
 def hash_password(password):
@@ -353,6 +357,7 @@ elif st.session_state.logged_in:
 else:
     # Par défaut (non connecté)
     show_login_page()
+
 
 
 
