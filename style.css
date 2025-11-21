@@ -1,21 +1,21 @@
 /* Définition des variables de couleurs */
 :root {
-    --primary-color: #00FFFF; /* Bleu ciel fluo */
-    --secondary-color: #000000; /* Noir mat */
-    --text-color-light: #FFFFFF; /* Blanc */
+    --primary-color: #FFC72C; /* Jaune Taxi */
+    --secondary-color: #FFFFFF; /* Blanc */
+    --text-color-light: #000000; /* Texte noir sur fond blanc */
     --text-color-dark: #000000;
 }
 
 /* Styles généraux pour le corps de la page Streamlit */
 body {
-    background-color: var(--secondary-color);
-    color: var(--text-color-light);
+    background-color: var(--secondary-color); /* Fond Blanc */
+    color: var(--text-color-light); /* Texte Noir */
 }
 
 /* Conteneur principal de Streamlit */
 .stApp {
-    background-color: var(--secondary-color);
-    color: var(--text-color-light);
+    background-color: var(--secondary-color); /* Fond Blanc */
+    color: var(--text-color-light); /* Texte Noir */
     max-width: 600px; /* Taille maximale pour un design adapté au mobile */
     margin: auto; /* Centrer le contenu */
     padding: 10px;
@@ -23,7 +23,7 @@ body {
 
 /* Titres */
 h1, h2, h3 {
-    color: var(--primary-color);
+    color: var(--primary-color); /* Jaune Taxi */
     text-align: center;
     font-weight: 700;
 }
@@ -31,9 +31,9 @@ h1, h2, h3 {
 /* Personnalisation des boutons */
 .stButton>button {
     width: 100%;
-    border: 2px solid var(--primary-color);
-    background-color: var(--secondary-color);
-    color: var(--primary-color);
+    border: 2px solid var(--primary-color); /* Bordure Jaune Taxi */
+    background-color: var(--secondary-color); /* Fond Blanc */
+    color: var(--primary-color); /* Texte Jaune Taxi */
     padding: 10px 20px;
     font-size: 16px;
     font-weight: bold;
@@ -42,8 +42,8 @@ h1, h2, h3 {
 }
 
 .stButton>button:hover {
-    background-color: var(--primary-color);
-    color: var(--secondary-color);
+    background-color: var(--primary-color); /* Fond Jaune Taxi */
+    color: var(--secondary-color); /* Texte Blanc */
     cursor: pointer;
 }
 
@@ -56,22 +56,22 @@ h1, h2, h3 {
 
 /* Inputs (champs de formulaire) */
 .stTextInput>div>div>input, .stSelectbox>div>div>select {
-    background-color: #1a1a1a; /* Noir très sombre */
-    color: var(--text-color-light);
-    border: 1px solid var(--primary-color);
+    background-color: #f0f0f0; /* Gris très clair pour contraste */
+    color: var(--text-color-dark); /* Texte Noir */
+    border: 1px solid var(--primary-color); /* Bordure Jaune Taxi */
     border-radius: 5px;
     padding: 10px;
 }
 
 /* Conteneurs de course (pour la liste des courses des drivers) */
 .trip-card {
-    background-color: #0a0a0a; /* Noir encore plus sombre pour les cartes */
+    background-color: #f7f7f7; /* Gris très clair/Blanc cassé pour les cartes */
     padding: 15px;
     margin-bottom: 15px;
     border-radius: 10px;
-    border-left: 5px solid var(--primary-color);
-    color: var(--text-color-light);
-    box-shadow: 0 0 15px rgba(0, 255, 255, 0.2); /* Ombre fluo */
+    border-left: 5px solid var(--primary-color); /* Bordure Jaune Taxi */
+    color: var(--text-color-dark); /* Texte Noir */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Ombre légère pour délimiter sur le fond blanc */
 }
 
 /* Texte d'information dans les cartes */
@@ -81,5 +81,5 @@ h1, h2, h3 {
 }
 
 .trip-card strong {
-    color: var(--primary-color);
+    color: var(--primary-color); /* Jaune Taxi */
 }
