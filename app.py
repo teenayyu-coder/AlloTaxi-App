@@ -39,7 +39,6 @@ AUTO_RESET = True  # ⚙️ Option B — auto-reset destructif
 
 @st.cache_resource
 def get_google_sheet_client():
-    """Retourne le client gspread."""
     try:
         creds_json = st.secrets["gcp_service_account"]
         scope = [
@@ -73,11 +72,6 @@ SHEET_SCHEMAS = {
 
 
 def ensure_sheet_exists(sheet_name):
-    """
-    Vérifie la feuille et garantit la structure :
-    - Si absente : créée avec colonnes par défaut.
-    - Si structure incorrecte : effacée et recréée (AUTO_RESET=True)
-    """
     if not client:
         return None
 
@@ -89,7 +83,7 @@ def ensure_sheet_exists(sheet_name):
         headers = ws.row_values(1)
 
         if headers != expected_cols:
-            # Efface la feuille et recrée avec le bon format
+            # Efface et recrée si structure incorrecte
             spreadsheet.del_worksheet(ws)
             ws = spreadsheet.add_worksheet(sheet_name, rows=100, cols=len(expected_cols))
             ws.append_row(expected_cols)
@@ -98,7 +92,6 @@ def ensure_sheet_exists(sheet_name):
         return ws
 
     except gspread.exceptions.WorksheetNotFound:
-        # Création si inexistante
         ws = spreadsheet.add_worksheet(sheet_name, rows=100, cols=len(expected_cols))
         ws.append_row(expected_cols)
         st.info(f"✅ Feuille '{sheet_name}' créée automatiquement.")
@@ -110,24 +103,20 @@ def ensure_sheet_exists(sheet_name):
 
 
 def get_worksheet(sheet_name):
-    """Retourne la feuille (assure sa conformité)."""
     return ensure_sheet_exists(sheet_name)
 
 
 def fetch_data(sheet_name):
-    """Charge une feuille Google Sheet dans un DataFrame."""
     ws = ensure_sheet_exists(sheet_name)
     if not ws:
         return pd.DataFrame(columns=SHEET_SCHEMAS.get(sheet_name, []))
 
     data = ws.get_all_records()
-
     if not data:
         return pd.DataFrame(columns=SHEET_SCHEMAS.get(sheet_name, []))
 
     df = pd.DataFrame(data)
     df.columns = df.columns.map(lambda x: str(x).strip())
-
     return df
 
 
@@ -148,6 +137,22 @@ def check_password_strength(password):
 
 
 # -------------------------------------------------------
+#             BOUTON DÉCONNEXION GLOBAL
+# -------------------------------------------------------
+
+def logout_button():
+    col1, col2 = st.columns([4, 1])
+    with col2:
+        if st.button("🚪 Déconnexion"):
+            st.session_state.logged_in = False
+            st.session_state.page = "login"
+            st.session_state.user_name = None
+            st.session_state.user_category = None
+            st.success("Déconnexion réussie ✅")
+            st.rerun()
+
+
+# -------------------------------------------------------
 #                   PAGE LOGIN
 # -------------------------------------------------------
 
@@ -162,13 +167,11 @@ def show_login_page():
 
     if submitted:
         users_df = fetch_data("Users")
-
         if users_df.empty:
             st.error("Aucun utilisateur enregistré.")
             return
 
         row = users_df[users_df["First Name"] == login_name]
-
         if row.empty:
             st.error("Prénom introuvable.")
             return
@@ -177,7 +180,6 @@ def show_login_page():
             st.error("Mot de passe incorrect.")
             return
 
-        # Login OK
         st.session_state.logged_in = True
         st.session_state.user_name = row["First Name"].iloc[0]
         st.session_state.user_category = row["Category"].iloc[0]
@@ -251,6 +253,7 @@ def show_register_page():
 
 def show_client_page():
     st.title(f"👋 Client : Bonjour {st.session_state.user_name}")
+    logout_button()
     st.markdown("---")
 
     with st.form("new_trip_form"):
@@ -275,7 +278,6 @@ def show_client_page():
             "Available",
             ""
         ])
-
         st.success("Course ajoutée !")
 
 
@@ -285,10 +287,10 @@ def show_client_page():
 
 def show_driver_page():
     st.title(f"🏍️ Driver : Bonjour {st.session_state.user_name}")
+    logout_button()
 
     df = fetch_data("Trips")
 
-    # Course en cours ?
     accepted = df[(df["Status"] == "Accepted") &
                   (df["Driver"] == st.session_state.user_name)]
 
@@ -303,12 +305,9 @@ def show_driver_page():
             st.session_state.driver_accepted_trip = None
             st.success("Course terminée !")
             st.rerun()
-
         return
 
-    # Courses disponibles
     avail = df[df["Status"] == "Available"]
-
     st.header(f"Courses disponibles ({len(avail)})")
     st.markdown("---")
 
@@ -318,7 +317,6 @@ def show_driver_page():
 
     for index, row in avail.iterrows():
         gs_row = index + 2
-
         st.markdown(f"""
             <div class="trip-card">
                 <h3>Course #{index + 1}</h3>
@@ -335,7 +333,6 @@ def show_driver_page():
             st.session_state.driver_accepted_trip = f"{row['Start Point']} → {row['End Point']}"
             st.success("Course acceptée !")
             st.rerun()
-
         st.markdown("---")
 
 
@@ -350,15 +347,6 @@ if "page" not in st.session_state:
     st.session_state.page = "login"
 
 
-# Déconnexion
-if st.session_state.logged_in:
-    if st.sidebar.button("Déconnexion"):
-        st.session_state.logged_in = False
-        st.session_state.page = "login"
-        st.rerun()
-
-
-# Router
 if not client:
     st.error("Impossible de se connecter à Google Sheets.")
 elif st.session_state.page == "register":
