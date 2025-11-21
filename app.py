@@ -34,6 +34,7 @@ load_css("style.css")
 # -------------------------------------------------------
 
 GOOGLE_SHEET_ID = "1JUG3IuVPrIDkDqLxaRwfZh1ArWYarrS4pQIOSqDE1WY"
+AUTO_RESET = True  # ⚙️ Option B — auto-reset destructif
 
 
 @st.cache_resource
@@ -55,30 +56,74 @@ def get_google_sheet_client():
 client = get_google_sheet_client()
 
 
+# -------------------------------
+#   DÉFINITION DES SCHEMAS
+# -------------------------------
+
+SHEET_SCHEMAS = {
+    "Users": [
+        "Category", "First Name", "Phone", "Password",
+        "Vehicle Brand", "Vehicle Type", "Engine Displacement"
+    ],
+    "Trips": [
+        "Client Name", "Client Phone", "Start Point",
+        "End Point", "Budget", "Status", "Driver"
+    ]
+}
+
+
+def ensure_sheet_exists(sheet_name):
+    """
+    Vérifie la feuille et garantit la structure :
+    - Si absente : créée avec colonnes par défaut.
+    - Si structure incorrecte : effacée et recréée (AUTO_RESET=True)
+    """
+    if not client:
+        return None
+
+    spreadsheet = client.open_by_key(GOOGLE_SHEET_ID)
+    expected_cols = SHEET_SCHEMAS.get(sheet_name, [])
+
+    try:
+        ws = spreadsheet.worksheet(sheet_name)
+        headers = ws.row_values(1)
+
+        if headers != expected_cols:
+            # Efface la feuille et recrée avec le bon format
+            spreadsheet.del_worksheet(ws)
+            ws = spreadsheet.add_worksheet(sheet_name, rows=100, cols=len(expected_cols))
+            ws.append_row(expected_cols)
+            st.warning(f"⚠️ Feuille '{sheet_name}' réinitialisée (structure incorrecte).")
+
+        return ws
+
+    except gspread.exceptions.WorksheetNotFound:
+        # Création si inexistante
+        ws = spreadsheet.add_worksheet(sheet_name, rows=100, cols=len(expected_cols))
+        ws.append_row(expected_cols)
+        st.info(f"✅ Feuille '{sheet_name}' créée automatiquement.")
+        return ws
+
+    except Exception as e:
+        st.error(f"Erreur accès feuille '{sheet_name}' : {e}")
+        return None
+
+
 def get_worksheet(sheet_name):
-    """Retourne la feuille demandée."""
-    if client:
-        try:
-            spreadsheet = client.open_by_key(GOOGLE_SHEET_ID)
-            return spreadsheet.worksheet(sheet_name)
-        except Exception as e:
-            st.error(f"Impossible de récupérer la feuille '{sheet_name}' : {e}")
-    return None
+    """Retourne la feuille (assure sa conformité)."""
+    return ensure_sheet_exists(sheet_name)
 
 
 def fetch_data(sheet_name):
     """Charge une feuille Google Sheet dans un DataFrame."""
-    ws = get_worksheet(sheet_name)
+    ws = ensure_sheet_exists(sheet_name)
     if not ws:
-        return pd.DataFrame()
+        return pd.DataFrame(columns=SHEET_SCHEMAS.get(sheet_name, []))
 
     data = ws.get_all_records()
 
     if not data:
-        return pd.DataFrame(columns=[
-            "Category", "First Name", "Phone", "Password",
-            "Vehicle Brand", "Vehicle Type", "Engine Displacement"
-        ])
+        return pd.DataFrame(columns=SHEET_SCHEMAS.get(sheet_name, []))
 
     df = pd.DataFrame(data)
     df.columns = df.columns.map(lambda x: str(x).strip())
