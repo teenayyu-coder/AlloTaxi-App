@@ -327,15 +327,26 @@ def show_driver_page():
         return
 
     for index, row in avail.iterrows():
-        gs_row = index + 2
-        st.markdown(f"""
-            <div class="trip-card">
-                <h3>Course #{index + 1}</h3>
-                <p>📍 Départ : <b>{row["Start Point"]}</b></p>
-                <p>🏁 Arrivée : <b>{row["End Point"]}</b></p>
-                <p>💰 Budget : <b>{row["Budget"]} Ar</b></p>
-            </div>
-        """, unsafe_allow_html=True)
+    gs_row = index + 2
+    st.markdown(f"""
+        <div class="trip-card" style="padding:10px; border-radius:10px; background:#f8f9fa; margin-bottom:10px;">
+            <h3>🚗 Course #{index + 1}</h3>
+            <p>👤 Client : <b>{row['Client Name']}</b></p>
+            <p>📞 Téléphone : <b>{row['Client Phone']}</b></p>
+            <p>📍 Départ : <b>{row['Start Point']}</b></p>
+            <p>🏁 Arrivée : <b>{row['End Point']}</b></p>
+            <p>💰 Budget : <b>{row['Budget']} Ar</b></p>
+        </div>
+    """, unsafe_allow_html=True)
+
+    if st.button("✅ Accepter cette course", key=f"acc_{index}"):
+        ws = get_worksheet("Trips")
+        ws.update_cell(gs_row, df.columns.get_loc("Status") + 1, "Accepted")
+        ws.update_cell(gs_row, df.columns.get_loc("Driver") + 1, st.session_state.user_name)
+        st.session_state.driver_accepted_trip = f"{row['Start Point']} → {row['End Point']}"
+        st.success("Course acceptée ✅")
+        st.rerun()
+
 
         if st.button("Accepter cette course", key=f"acc_{index}"):
             ws = get_worksheet("Trips")
@@ -371,3 +382,4 @@ elif st.session_state.logged_in:
         st.error("Catégorie inconnue.")
 else:
     show_login_page()
+
