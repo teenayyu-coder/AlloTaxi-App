@@ -274,7 +274,7 @@ def show_client_page():
             st.session_state.user_phone,
             start_point,
             end_point,
-            budget,
+            str(budget),
             "Available",
             ""
         ])
@@ -360,4 +360,5 @@ elif st.session_state.logged_in:
         st.error("Catégorie inconnue.")
 else:
     show_login_page()
+
 
