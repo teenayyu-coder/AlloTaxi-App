@@ -143,7 +143,7 @@ def check_password_strength(password):
 def logout_button():
     col1, col2 = st.columns([4, 1])
     with col2:
-        if st.button("🚪 Déconnexion"):
+        if st.button("Loggout"):
             st.session_state.logged_in = False
             st.session_state.page = "login"
             st.session_state.user_name = None
@@ -360,3 +360,4 @@ elif st.session_state.logged_in:
         st.error("Catégorie inconnue.")
 else:
     show_login_page()
+
