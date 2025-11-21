@@ -72,6 +72,7 @@ SHEET_SCHEMAS = {
 
 
 def ensure_sheet_exists(sheet_name):
+    """Crée ou réinitialise la feuille pour garantir la bonne structure."""
     if not client:
         return None
 
@@ -83,7 +84,6 @@ def ensure_sheet_exists(sheet_name):
         headers = ws.row_values(1)
 
         if headers != expected_cols:
-            # Efface et recrée si structure incorrecte
             spreadsheet.del_worksheet(ws)
             ws = spreadsheet.add_worksheet(sheet_name, rows=100, cols=len(expected_cols))
             ws.append_row(expected_cols)
@@ -141,9 +141,10 @@ def check_password_strength(password):
 # -------------------------------------------------------
 
 def logout_button():
+    """Affiche un bouton de déconnexion en haut à droite."""
     col1, col2 = st.columns([4, 1])
     with col2:
-        if st.button("Loggout"):
+        if st.button("🚪 Déconnexion"):
             st.session_state.logged_in = False
             st.session_state.page = "login"
             st.session_state.user_name = None
@@ -237,8 +238,11 @@ def show_register_page():
             driver_data.get("Vehicle Type", ""),
             driver_data.get("Engine Displacement", "")
         ]
-        ws.append_row(new_row)
 
+        # ✅ conversion sécurité
+        new_row = [str(x) if x is not None else "" for x in new_row]
+
+        ws.append_row(new_row)
         st.success("Compte créé ! Vous pouvez vous connecter.")
         st.session_state.page = "login"
         st.rerun()
@@ -248,7 +252,7 @@ def show_register_page():
 
 
 # -------------------------------------------------------
-#                   PAGE CLIENT
+#                   PAGE CLIENT (corrigée)
 # -------------------------------------------------------
 
 def show_client_page():
@@ -260,7 +264,6 @@ def show_client_page():
         start_point = st.text_input("Départ")
         end_point = st.text_input("Arrivée")
         budget = st.number_input("Budget (Ariary)", min_value=1000)
-
         submitted = st.form_submit_button("Créer la course")
 
     if submitted:
@@ -268,17 +271,25 @@ def show_client_page():
             st.error("Veuillez remplir tous les champs.")
             return
 
-        ws = get_worksheet("Trips")
-        ws.append_row([
-            st.session_state.user_name,
-            st.session_state.user_phone,
-            start_point,
-            end_point,
-            str(budget),
-            "Available",
-            ""
-        ])
-        st.success("Course ajoutée !")
+        try:
+            ws = get_worksheet("Trips")
+
+            # ✅ Conversion sécurisée en texte
+            new_trip = [
+                str(st.session_state.user_name or ""),
+                str(st.session_state.user_phone or ""),
+                str(start_point or ""),
+                str(end_point or ""),
+                str(int(budget)),
+                "Available",
+                ""
+            ]
+
+            ws.append_row(new_trip)
+            st.success("✅ Course ajoutée avec succès !")
+
+        except Exception as e:
+            st.error(f"Erreur lors de l’ajout de la course : {e}")
 
 
 # -------------------------------------------------------
@@ -360,5 +371,3 @@ elif st.session_state.logged_in:
         st.error("Catégorie inconnue.")
 else:
     show_login_page()
-
-
