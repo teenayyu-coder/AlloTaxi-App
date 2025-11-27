@@ -4,9 +4,10 @@ import hashlib
 import re
 import json
 from copy import deepcopy
+import time # Pour la gestion du statut en ligne simple
 
 # -------------------------------------------------------
-#                CONFIGURATION STREAMLIT
+#               CONFIGURATION STREAMLIT & STYLE
 # -------------------------------------------------------
 st.set_page_config(
     page_title="AlloTaxi",
@@ -14,80 +15,135 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-def load_css(file_name):
-    """Charge le fichier CSS externe."""
-    try:
-        with open(file_name) as f:
-            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-    except FileNotFoundError:
-        st.warning(f"Le fichier CSS '{file_name}' est introuvable.")
+def load_css():
+    """Charge le style CSS de base directement via markdown."""
+    # Remplacer la lecture de style.css par du CSS intégré pour l'autonomie du fichier
+    css = """
+    body {
+        font-family: 'Inter', sans-serif;
+    }
+    .main-header {
+        color: #FF4B4B;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    .trip-card {
+        padding: 15px;
+        border-radius: 12px;
+        background: #f0f4f8;
+        margin-bottom: 15px;
+        border: 1px solid #dcdfe4;
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.05);
+    }
+    .trip-card h3 {
+        color: #333;
+        border-bottom: 2px solid #ddd;
+        padding-bottom: 5px;
+        margin-top: 0;
+    }
+    .status-available { color: #28a745; font-weight: bold; }
+    .status-accepted { color: #ffc107; font-weight: bold; }
+    .status-completed { color: #6c757d; font-weight: bold; }
+    .status-cancelled { color: #dc3545; font-weight: bold; }
+    """
+    st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
 
-load_css("style.css")
+load_css()
 
 # -------------------------------------------------------
-#                GESTION DES DONNÉES JSON (Simulées)
+#               GESTION DES DONNÉES JSON
 # -------------------------------------------------------
 
-# Structure initiale des données (à remplacer par la lecture de 'data.json' si possible)
-# Pour une utilisation Streamlit Cloud, les données seront stockées ici au démarrage.
+# Structure initiale des données
+# 'adminpass' hashé: 5e884898da28047151d0e56f8dc6292773603d0d6aabf35d2153c3e017d23d8c
+# 'password' hashé: 5e884898da28047151d0e56f8dc6292773603d0d6aabf35d2153c3e017d23d8c
 INITIAL_DATA = {
     "Users": [
-        # Exemple d'utilisateur/driver pré-enregistré pour les tests
-        # Note: Les mots de passe sont hashés (ex: "password" -> hash)
         {
-          "Category": "Client",
-          "First Name": "testclient",
-          "Phone": "032111111",
-          "Password": "5e884898da28047151d0e56f8dc6292773603d0d6aabf35d2153c3e017d23d8c", # 'password' hashé
-          "Vehicle Brand": "",
-          "Vehicle Type": "",
-          "Engine Displacement": ""
+            "Category": "Admin",
+            "First Name": "admin",
+            "Phone": "000000000",
+            "Password": "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918", # 'adminpass' hashé
+            "Vehicle Brand": "", "Vehicle Type": "", "Engine Displacement": "",
+            "Is Online": False
         },
         {
-          "Category": "Driver",
-          "First Name": "testdriver",
-          "Phone": "034222222",
-          "Password": "5e884898da28047151d0e56f8dc6292773603d0d6aabf35d2153c3e017d23d8c", # 'password' hashé
-          "Vehicle Brand": "Peugeot",
-          "Vehicle Type": "Voiture",
-          "Engine Displacement": "1.0L"
+            "Category": "Client",
+            "First Name": "testclient",
+            "Phone": "032111111",
+            "Password": "5e884898da28047151d0e56f8dc6292773603d0d6aabf35d2153c3e017d23d8c",
+            "Vehicle Brand": "", "Vehicle Type": "", "Engine Displacement": "",
+            "Is Online": False
+        },
+        {
+            "Category": "Driver",
+            "First Name": "testdriver",
+            "Phone": "034222222",
+            "Password": "5e884898da28047151d0e56f8dc6292773603d0d6aabf35d2153c3e017d23d8c",
+            "Vehicle Brand": "Peugeot", "Vehicle Type": "Voiture", "Engine Displacement": "1.0L",
+            "Is Online": False
         }
     ],
     "Trips": [
-        # Exemple de course initiale
         {
-          "Client Name": "Admin",
-          "Client Phone": "000000000",
-          "Start Point": "Place de l'Indépendance",
-          "End Point": "Analakely",
-          "Budget": "5000",
-          "Status": "Available",
-          "Driver": ""
+            "Client Name": "Admin", "Client Phone": "000000000",
+            "Start Point": "Place de l'Indépendance", "End Point": "Analakely",
+            "Budget": "5000", "Status": "Available", "Driver": ""
+        },
+        {
+            "Client Name": "testclient", "Client Phone": "032111111",
+            "Start Point": "Antananarivo", "End Point": "Imerina",
+            "Budget": "15000", "Status": "Accepted", "Driver": "testdriver"
         }
     ]
 }
 
+# Variable globale pour l'URL du fichier data.json sur GitHub
+GITHUB_DATA_URL = "URL_DU_FICHIER_RAW_DATA_JSON_SUR_VOTRE_REPO"
+
 def load_data():
-    """Charge les données JSON depuis l'état de session ou l'initialise."""
+    """
+    Charge les données JSON depuis l'état de session ou l'initialise.
+    
+    Dans une application réelle, cette fonction ferait une requête GET à l'API GitHub 
+    pour récupérer le contenu brut du fichier data.json.
+    """
     if 'data_store' not in st.session_state:
-        # Idéalement ici : Lire le fichier data.json
-        # Mais dans Streamlit Cloud, on utilise une version en mémoire
         st.session_state.data_store = deepcopy(INITIAL_DATA)
-        st.info("Données initialisées en mémoire.")
+        st.info("Données initialisées en mémoire (Simulation).")
+        
+        # Exemple de code pour le chargement réel depuis GitHub:
+        # import requests
+        # try:
+        #     response = requests.get(GITHUB_DATA_URL)
+        #     response.raise_for_status() # Lève une exception pour les codes d'erreur
+        #     st.session_state.data_store = response.json()
+        # except Exception as e:
+        #     st.error(f"Erreur lors du chargement des données depuis GitHub: {e}")
+        #     st.session_state.data_store = deepcopy(INITIAL_DATA) # Fallback
+
     return st.session_state.data_store
 
 def save_data(data):
-    """Simule la sauvegarde des données (mise à jour de l'état de session)."""
-    # Ce point serait l'endroit où vous feriez la requête PUT/POST vers l'API GitHub
+    """
+    Simule la sauvegarde des données (mise à jour de l'état de session).
+    
+    Dans une application réelle, cette fonction ferait une requête PUT/POST 
+    authentifiée à l'API GitHub pour mettre à jour le fichier data.json.
+    """
     st.session_state.data_store = data
-    # st.success("Données mises à jour en mémoire (Simulée) !") # Optionnel
+    
+    # Exemple de code pour la sauvegarde réelle vers GitHub:
+    # (Nécessite le token GitHub et l'implémentation de la logique de commit)
+    # st.info("Sauvegarde en mémoire effectuée. L'écriture sur GitHub n'est pas implémentée dans cette démo.")
+
 
 def fetch_data(sheet_name):
     """Récupère les données d'une 'feuille' et les renvoie sous forme de DataFrame."""
     data = load_data()
     df = pd.DataFrame(data.get(sheet_name, []))
-    # Assurer que les colonnes attendues existent pour éviter les erreurs
     expected_cols = SHEET_SCHEMAS.get(sheet_name, [])
+    # Assurer que les colonnes attendues existent pour éviter les erreurs
     for col in expected_cols:
         if col not in df.columns:
             df[col] = ''
@@ -109,13 +165,21 @@ def update_row_field(sheet_name, index_to_update, field, new_value):
         return True
     return False
 
+# Fonction pour mettre à jour le statut en ligne d'un utilisateur
+def update_user_online_status(user_name, is_online):
+    df_users = fetch_data("Users")
+    user_row = df_users[df_users["First Name"] == user_name]
+    if not user_row.empty:
+        df_index = user_row.index[0]
+        update_row_field("Users", df_index, "Is Online", is_online)
+
 # -------------------------------------------------------
-#                SCHEMAS DES DONNÉES
+#               SCHEMAS DES DONNÉES
 # -------------------------------------------------------
 SHEET_SCHEMAS = {
     "Users": [
         "Category", "First Name", "Phone", "Password",
-        "Vehicle Brand", "Vehicle Type", "Engine Displacement"
+        "Vehicle Brand", "Vehicle Type", "Engine Displacement", "Is Online" # Nouveau champ
     ],
     "Trips": [
         "Client Name", "Client Phone", "Start Point",
@@ -124,7 +188,7 @@ SHEET_SCHEMAS = {
 }
 
 # -------------------------------------------------------
-#                SÉCURITÉ MOT DE PASSE
+#               SÉCURITÉ MOT DE PASSE
 # -------------------------------------------------------
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
@@ -137,13 +201,16 @@ def check_password_strength(password):
     return True, ""
 
 # -------------------------------------------------------
-#                BOUTON DE DÉCONNEXION
+#               BOUTON DE DÉCONNEXION
 # -------------------------------------------------------
 def logout_button():
-    """Affiche un bouton de déconnexion en haut à droite."""
+    """Affiche un bouton de déconnexion en haut à droite et gère le statut en ligne."""
     col1, col2 = st.columns([4, 1])
     with col2:
         if st.button("🚪 Déconnexion"):
+            if st.session_state.user_category in ["Driver", "Admin"]:
+                update_user_online_status(st.session_state.user_name, False)
+            
             st.session_state.logged_in = False
             st.session_state.page = "login"
             st.session_state.user_name = None
@@ -152,7 +219,7 @@ def logout_button():
             st.rerun()
 
 # -------------------------------------------------------
-#                   PAGE LOGIN
+#                       PAGE LOGIN
 # -------------------------------------------------------
 def show_login_page():
     st.title("🚖 AlloTaxi")
@@ -166,11 +233,13 @@ def show_login_page():
         if users_df.empty:
             st.error("Aucun utilisateur enregistré.")
             return
+            
         row = users_df[users_df["First Name"] == login_name]
+        
         if row.empty:
             st.error("Prénom introuvable.")
             return
-        
+            
         # Vérification du mot de passe
         hashed_input = hash_password(login_pass)
         stored_hash = row["Password"].iloc[0]
@@ -179,19 +248,26 @@ def show_login_page():
             st.error("Mot de passe incorrect.")
             return
             
+        # Connexion réussie
+        user_category = row["Category"].iloc[0]
         st.session_state.logged_in = True
         st.session_state.user_name = row["First Name"].iloc[0]
-        st.session_state.user_category = row["Category"].iloc[0]
+        st.session_state.user_category = user_category
         st.session_state.user_phone = row["Phone"].iloc[0]
+        
+        if user_category in ["Driver", "Admin"]:
+            update_user_online_status(st.session_state.user_name, True)
+            
         st.session_state.driver_accepted_trip = None
         st.success(f"Bienvenue {st.session_state.user_name} 👋")
         st.rerun()
+        
     st.markdown("---")
     if st.button("Créer un compte"):
         st.session_state.page = "register"
 
 # -------------------------------------------------------
-#                   PAGE REGISTER
+#                       PAGE REGISTER
 # -------------------------------------------------------
 def show_register_page():
     st.title("✍️ Créer un Compte AlloTaxi")
@@ -203,6 +279,7 @@ def show_register_page():
         
         driver_data = {}
         if category == "Driver":
+            st.subheader("Informations Véhicule")
             driver_data["Vehicle Brand"] = st.text_input("Marque du véhicule")
             driver_data["Vehicle Type"] = st.selectbox("Type du véhicule", ["Voiture", "Moto"])
             driver_data["Engine Displacement"] = st.text_input("Cylindrée")
@@ -210,6 +287,10 @@ def show_register_page():
         submitted = st.form_submit_button("Créer le compte")
     
     if submitted:
+        if first_name.lower() == 'admin':
+            st.error("Le prénom 'admin' est réservé.")
+            return
+
         ok, msg = check_password_strength(password)
         if not ok:
             st.error(msg)
@@ -228,7 +309,8 @@ def show_register_page():
             "Password": hash_password(password),
             "Vehicle Brand": driver_data.get("Vehicle Brand", ""),
             "Vehicle Type": driver_data.get("Vehicle Type", ""),
-            "Engine Displacement": driver_data.get("Engine Displacement", "")
+            "Engine Displacement": driver_data.get("Engine Displacement", ""),
+            "Is Online": False # Par défaut, déconnecté
         }
         
         append_row("Users", new_user_dict)
@@ -240,12 +322,62 @@ def show_register_page():
         st.session_state.page = "login"
 
 # -------------------------------------------------------
-#                   PAGE CLIENT
+#                       PAGE ADMIN (NOUVELLE)
+# -------------------------------------------------------
+def show_admin_page():
+    st.title(f"👑 Admin : Gestion des Drivers")
+    logout_button()
+    st.markdown("---")
+    
+    st.header("Statut des Drivers")
+    
+    df_users = fetch_data("Users")
+    df_trips = fetch_data("Trips")
+    
+    driver_df = df_users[df_users["Category"] == "Driver"].copy()
+    
+    if driver_df.empty:
+        st.info("Aucun driver enregistré.")
+        return
+
+    # Joindre les informations de course pour les drivers en course
+    accepted_trips = df_trips[df_trips["Status"] == "Accepted"]
+    
+    driver_list = []
+    for _, driver in driver_df.iterrows():
+        driver_name = driver['First Name']
+        
+        # Vérifier si le driver a une course acceptée
+        trip_in_progress = accepted_trips[accepted_trips["Driver"] == driver_name]
+        
+        status_online = "🟢 En Ligne" if driver['Is Online'] else "🔴 Hors Ligne"
+        
+        if not trip_in_progress.empty:
+            trip_info = f"En Course: {trip_in_progress.iloc[0]['Start Point']} → {trip_in_progress.iloc[0]['End Point']} (Client: {trip_in_progress.iloc[0]['Client Name']})"
+            status_race = "🟡 EN COURSE"
+        else:
+            trip_info = "En attente de course"
+            status_race = "✅ Disponible"
+            
+        driver_list.append({
+            "Driver": driver_name,
+            "Statut Connexion": status_online,
+            "Statut Course": status_race,
+            "Course en Cours": trip_info
+        })
+        
+    st.dataframe(pd.DataFrame(driver_list), use_container_width=True)
+
+
+# -------------------------------------------------------
+#                       PAGE CLIENT (MODIFIÉE)
 # -------------------------------------------------------
 def show_client_page():
     st.title(f"👋 Client : Bonjour {st.session_state.user_name}")
     logout_button()
     st.markdown("---")
+    
+    st.header("Créer une nouvelle course")
     with st.form("new_trip_form"):
         start_point = st.text_input("Départ")
         end_point = st.text_input("Arrivée")
@@ -268,12 +400,42 @@ def show_client_page():
                 "Driver": ""
             }
             append_row("Trips", new_trip)
-            st.success("✅ Course ajoutée avec succès !")
+            st.success("✅ Course ajoutée avec succès ! (Actualisez pour voir le statut)")
         except Exception as e:
             st.error(f"Erreur lors de l’ajout de la course : {e}")
 
+    st.markdown("---")
+    st.header("Historique de vos courses")
+    
+    df_trips = fetch_data("Trips")
+    
+    # Filtrer les courses créées par ce client
+    client_trips = df_trips[df_trips["Client Phone"] == st.session_state.user_phone]
+    
+    if client_trips.empty:
+        st.info("Vous n'avez créé aucune course pour l'instant.")
+        return
+        
+    for index, row in client_trips.iterrows():
+        status_color = {
+            "Available": "status-available",
+            "Accepted": "status-accepted",
+            "Completed": "status-completed",
+            "Cancelled": "status-cancelled",
+        }.get(row['Status'], "status-completed")
+        
+        st.markdown(f"""
+            <div class="trip-card">
+                <h4>{row['Start Point']} → {row['End Point']}</h4>
+                <p>💰 Budget : <b>{row['Budget']} Ar</b></p>
+                <p>🏁 Statut : <span class="{status_color}">{row['Status']}</span></p>
+                <p>🚕 Driver Assigné : <b>{row['Driver'] if row['Driver'] else 'En attente'}</b></p>
+            </div>
+        """, unsafe_allow_html=True)
+
+
 # -------------------------------------------------------
-#                   PAGE DRIVER
+#                       PAGE DRIVER (MODIFIÉE)
 # -------------------------------------------------------
 def show_driver_page():
     st.title(f"🏍️ Driver : Bonjour {st.session_state.user_name}")
@@ -289,15 +451,29 @@ def show_driver_page():
         # On utilise l'index du DataFrame pour la mise à jour
         df_index = accepted.index[0] 
 
-        st.warning(f"🚨 Course en cours : {row['Start Point']} → {row['End Point']}")
+        st.warning(f"🚨 Course en cours : {row['Start Point']} → {row['End Point']} (Client: {row['Client Name']})")
         
-        if st.button("Terminer la course"):
-            if update_row_field("Trips", df_index, "Status", "Completed"):
-                st.session_state.driver_accepted_trip = None
-                st.success("Course terminée !")
-                st.rerun()
-            else:
-                st.error("Erreur lors de la mise à jour de la course.")
+        col_finish, col_cancel, _ = st.columns([1.5, 1.5, 3])
+        
+        with col_finish:
+            if st.button("🏁 Terminer la course", use_container_width=True):
+                if update_row_field("Trips", df_index, "Status", "Completed"):
+                    # On retire la course acceptée de la session (pour l'affichage)
+                    st.success("Course terminée ! Félicitations.")
+                    st.rerun()
+                else:
+                    st.error("Erreur lors de la mise à jour de la course.")
+        
+        with col_cancel:
+            # Nouveau bouton pour annuler la course
+            if st.button("❌ Annuler la course", use_container_width=True):
+                if update_row_field("Trips", df_index, "Status", "Available") and \
+                   update_row_field("Trips", df_index, "Driver", ""):
+                    st.warning("Course annulée et remise en attente d'acceptation.")
+                    st.rerun()
+                else:
+                    st.error("Erreur lors de l'annulation de la course.")
+        
         return
     
     # 2. Affichage des courses disponibles
@@ -306,59 +482,60 @@ def show_driver_page():
     st.markdown("---")
     
     if avail.empty:
-        st.info("Aucune course disponible.")
+        st.info("Aucune course disponible actuellement.")
         return
     
     for df_index, row in avail.iterrows():
-        st.markdown(f"""
-            <div class="trip-card" style="padding:10px; border-radius:10px; background:#f8f9fa; margin-bottom:10px;">
-                <h3>🚗 Course #{df_index + 1}</h3>
-                <p>👤 Client : <b>{row['Client Name']}</b></p>
-                <p>📞 Téléphone : <b>{row['Client Phone']}</b></p>
-                <p>📍 Départ : <b>{row['Start Point']}</b></p>
-                <p>🏁 Arrivée : <b>{row['End Point']}</b></p>
-                <p>💰 Budget : <b>{row['Budget']} Ar</b></p>
-            </div>
-        """, unsafe_allow_html=True)
+        # Utiliser un conteneur pour isoler le bouton et la carte de course
+        card_container = st.container()
         
-        if st.button("✅ Accepter cette course", key=f"acc_{df_index}"):
-            # Mise à jour des deux champs dans la ligne Trips correspondante
-            status_ok = update_row_field("Trips", df_index, "Status", "Accepted")
-            driver_ok = update_row_field("Trips", df_index, "Driver", st.session_state.user_name)
+        with card_container:
+            st.markdown(f"""
+                <div class="trip-card">
+                    <h3>🚗 Course #{df_index + 1}</h3>
+                    <p>📍 Départ : <b>{row['Start Point']}</b></p>
+                    <p>🏁 Arrivée : <b>{row['End Point']}</b></p>
+                    <p>💰 Budget : <b>{row['Budget']} Ar</b></p>
+                    <p style="font-size: small; color: #6c757d;">(Client: {row['Client Name']} / Tél: {row['Client Phone']})</p>
+                </div>
+            """, unsafe_allow_html=True)
             
-            if status_ok and driver_ok:
-                st.session_state.driver_accepted_trip = f"{row['Start Point']} → {row['End Point']}"
-                st.success("Course acceptée ✅")
-                st.rerun()
-            else:
-                st.error("Erreur lors de l'acceptation de la course.")
+            if st.button("✅ Accepter cette course", key=f"acc_{df_index}"):
+                # Mise à jour des deux champs dans la ligne Trips correspondante
+                status_ok = update_row_field("Trips", df_index, "Status", "Accepted")
+                driver_ok = update_row_field("Trips", df_index, "Driver", st.session_state.user_name)
                 
-        st.markdown("---")
+                if status_ok and driver_ok:
+                    st.success("Course acceptée ✅. Vous pouvez commencer la course.")
+                    st.rerun()
+                else:
+                    st.error("Erreur lors de l'acceptation de la course.")
+                    
+            st.markdown("---")
 
 # -------------------------------------------------------
-#                ROUTING PRINCIPAL
+#               ROUTING PRINCIPAL
 # -------------------------------------------------------
 
-# ⚠️ IMPORTANT : Initialisation des données JSON en mémoire au démarrage
-# Ceci doit être fait avant le routing
+# Initialisation des données JSON en mémoire au démarrage
 load_data() 
 
+# Initialisation de l'état de session
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 if "page" not in st.session_state:
     st.session_state.page = "login"
 
-# Suppression de la vérification de la connexion Google Sheets
-# puisque nous utilisons la méthode de simulation JSON en mémoire
-
 if st.session_state.page == "register":
     show_register_page()
 elif st.session_state.logged_in:
-    if st.session_state.user_category == "Client":
+    if st.session_state.user_category == "Admin":
+        show_admin_page() # Nouvelle page Admin
+    elif st.session_state.user_category == "Client":
         show_client_page()
     elif st.session_state.user_category == "Driver":
         show_driver_page()
     else:
-        st.error("Catégorie inconnue.")
+        st.error("Catégorie inconnue ou page non trouvée.")
 else:
     show_login_page()
