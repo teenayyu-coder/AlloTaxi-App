@@ -168,7 +168,7 @@ def load_data():
                 file_content = base64.b64decode(content["content"]).decode("utf-8")
                 st.session_state.data_store = json.loads(file_content)
                 st.session_state.file_sha = content.get("sha")
-                st.info("Données chargées depuis GitHub.")
+                st.info("Merci de vous connecter.")
                 return st.session_state.data_store
             elif r.status_code == 404:
                 # Fichier absent -> créer avec INITIAL_DATA
@@ -629,4 +629,5 @@ elif st.session_state.logged_in:
         st.error("Catégorie inconnue ou page non trouvée.")
 else:
     show_login_page()
+
 
