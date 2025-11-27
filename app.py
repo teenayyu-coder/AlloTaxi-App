@@ -311,12 +311,10 @@ def logout_button():
 #                       PAGE LOGIN
 # -------------------------------------------------------
 def show_login_page():
-    # Si tu veux afficher un ico local, assure-toi qu'il est présent dans le dossier d'app
     try:
         st.image("allotaxi.ico", width=80)
     except Exception:
         pass
-
     st.title("AlloTaxi")
     st.header("Connexion")
     with st.form("login_form"):
@@ -631,3 +629,4 @@ elif st.session_state.logged_in:
         st.error("Catégorie inconnue ou page non trouvée.")
 else:
     show_login_page()
+
