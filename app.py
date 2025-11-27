@@ -222,7 +222,8 @@ def logout_button():
 #                       PAGE LOGIN
 # -------------------------------------------------------
 def show_login_page():
-    st.title("🚖 AlloTaxi")
+    st.image("allotaxi.ico", width=80)
+    st.title("AlloTaxi")
     st.header("Connexion")
     with st.form("login_form"):
         login_name = st.text_input("Prénom")
@@ -539,3 +540,4 @@ elif st.session_state.logged_in:
         st.error("Catégorie inconnue ou page non trouvée.")
 else:
     show_login_page()
+
