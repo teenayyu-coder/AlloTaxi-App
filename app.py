@@ -368,27 +368,18 @@ def show_login_page():
 # -------------------------------------------------------
 def show_register_page():
     st.title("✍️ Créer un Compte AlloTaxi")
-    
-    # MODIFICATION CLÉ : Déplacer le selectbox Categorie hors du formulaire
-    category = st.selectbox("Catégorie", ["Client", "Driver"], key="register_category")
-
-    driver_data = {}
-    # Afficher les champs du véhicule immédiatement si "Driver" est sélectionné
-    if category == "Driver":
-        st.subheader("Informations Véhicule")
-        # Utiliser des clés pour s'assurer que les widgets sont distingués
-        driver_data["Vehicle Brand"] = st.text_input("Marque du véhicule", key="reg_v_brand")
-        driver_data["Vehicle Type"] = st.selectbox("Type du véhicule", ["Voiture", "Moto"], key="reg_v_type")
-        driver_data["Engine Displacement"] = st.text_input("Cylindrée", key="reg_v_engine")
-
-
     with st.form("register_form"):
-        # Les champs communs restent dans le formulaire
+        category = st.selectbox("Catégorie", ["Client", "Driver"])
         first_name = st.text_input("Prénom")
         phone = st.text_input("Téléphone")
         password = st.text_input("Mot de passe", type="password")
 
-        # La section conditionnelle pour driver_data est retirée d'ici
+        driver_data = {}
+        if category == "Driver":
+            st.subheader("Informations Véhicule")
+            driver_data["Vehicle Brand"] = st.text_input("Marque du véhicule")
+            driver_data["Vehicle Type"] = st.selectbox("Type du véhicule", ["Voiture", "Moto"])
+            driver_data["Engine Displacement"] = st.text_input("Cylindrée")
 
         submitted = st.form_submit_button("Créer le compte")
 
@@ -413,7 +404,6 @@ def show_register_page():
             "First Name": first_name,
             "Phone": phone,
             "Password": hash_password(password),
-            # On utilise les valeurs de driver_data collectées en dehors du formulaire
             "Vehicle Brand": driver_data.get("Vehicle Brand", ""),
             "Vehicle Type": driver_data.get("Vehicle Type", ""),
             "Engine Displacement": driver_data.get("Engine Displacement", ""),
