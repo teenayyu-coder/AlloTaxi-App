@@ -1,9 +1,9 @@
 import streamlit as st
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
 import pandas as pd
 import hashlib
 import re
+import json
+from copy import deepcopy
 
 # -------------------------------------------------------
 #                CONFIGURATION STREAMLIT
@@ -25,29 +25,92 @@ def load_css(file_name):
 load_css("style.css")
 
 # -------------------------------------------------------
-#                CONNEXION GOOGLE SHEETS
+#                GESTION DES DONNÉES JSON (Simulées)
 # -------------------------------------------------------
-GOOGLE_SHEET_ID = "1JUG3IuVPrIDkDqLxaRwfZh1ArWYarrS4pQIOSqDE1WY"
-AUTO_RESET = True  # ⚙️ Option B — auto-reset destructif
 
-@st.cache_resource
-def get_google_sheet_client():
-    try:
-        creds_json = st.secrets["gcp_service_account"]
-        scope = [
-            "https://spreadsheets.google.com/feeds",
-            "https://www.googleapis.com/auth/drive"
-        ]
-        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_json, scope)
-        return gspread.authorize(creds)
-    except Exception as e:
-        st.error(f"Erreur connexion Google Sheets : {e}")
-        return None
+# Structure initiale des données (à remplacer par la lecture de 'data.json' si possible)
+# Pour une utilisation Streamlit Cloud, les données seront stockées ici au démarrage.
+INITIAL_DATA = {
+    "Users": [
+        # Exemple d'utilisateur/driver pré-enregistré pour les tests
+        # Note: Les mots de passe sont hashés (ex: "password" -> hash)
+        {
+          "Category": "Client",
+          "First Name": "testclient",
+          "Phone": "032111111",
+          "Password": "5e884898da28047151d0e56f8dc6292773603d0d6aabf35d2153c3e017d23d8c", # 'password' hashé
+          "Vehicle Brand": "",
+          "Vehicle Type": "",
+          "Engine Displacement": ""
+        },
+        {
+          "Category": "Driver",
+          "First Name": "testdriver",
+          "Phone": "034222222",
+          "Password": "5e884898da28047151d0e56f8dc6292773603d0d6aabf35d2153c3e017d23d8c", # 'password' hashé
+          "Vehicle Brand": "Peugeot",
+          "Vehicle Type": "Voiture",
+          "Engine Displacement": "1.0L"
+        }
+    ],
+    "Trips": [
+        # Exemple de course initiale
+        {
+          "Client Name": "Admin",
+          "Client Phone": "000000000",
+          "Start Point": "Place de l'Indépendance",
+          "End Point": "Analakely",
+          "Budget": "5000",
+          "Status": "Available",
+          "Driver": ""
+        }
+    ]
+}
 
-client = get_google_sheet_client()
+def load_data():
+    """Charge les données JSON depuis l'état de session ou l'initialise."""
+    if 'data_store' not in st.session_state:
+        # Idéalement ici : Lire le fichier data.json
+        # Mais dans Streamlit Cloud, on utilise une version en mémoire
+        st.session_state.data_store = deepcopy(INITIAL_DATA)
+        st.info("Données initialisées en mémoire.")
+    return st.session_state.data_store
+
+def save_data(data):
+    """Simule la sauvegarde des données (mise à jour de l'état de session)."""
+    # Ce point serait l'endroit où vous feriez la requête PUT/POST vers l'API GitHub
+    st.session_state.data_store = data
+    # st.success("Données mises à jour en mémoire (Simulée) !") # Optionnel
+
+def fetch_data(sheet_name):
+    """Récupère les données d'une 'feuille' et les renvoie sous forme de DataFrame."""
+    data = load_data()
+    df = pd.DataFrame(data.get(sheet_name, []))
+    # Assurer que les colonnes attendues existent pour éviter les erreurs
+    expected_cols = SHEET_SCHEMAS.get(sheet_name, [])
+    for col in expected_cols:
+        if col not in df.columns:
+            df[col] = ''
+    return df
+
+def append_row(sheet_name, new_row_dict):
+    """Ajoute une nouvelle ligne (dictionnaire) à une 'feuille' de données."""
+    data = load_data()
+    data[sheet_name].append(new_row_dict)
+    save_data(data)
+
+def update_row_field(sheet_name, index_to_update, field, new_value):
+    """Met à jour un champ spécifique dans une ligne par son index pandas."""
+    data = load_data()
+    # L'index pandas correspond à l'index dans la liste Python
+    if 0 <= index_to_update < len(data[sheet_name]):
+        data[sheet_name][index_to_update][field] = new_value
+        save_data(data)
+        return True
+    return False
 
 # -------------------------------------------------------
-#                SCHEMAS DES FEUILLES
+#                SCHEMAS DES DONNÉES
 # -------------------------------------------------------
 SHEET_SCHEMAS = {
     "Users": [
@@ -59,44 +122,6 @@ SHEET_SCHEMAS = {
         "End Point", "Budget", "Status", "Driver"
     ]
 }
-
-def ensure_sheet_exists(sheet_name):
-    """Crée ou réinitialise la feuille pour garantir la bonne structure."""
-    if not client:
-        return None
-    spreadsheet = client.open_by_key(GOOGLE_SHEET_ID)
-    expected_cols = SHEET_SCHEMAS.get(sheet_name, [])
-    try:
-        ws = spreadsheet.worksheet(sheet_name)
-        headers = ws.row_values(1)
-        if headers != expected_cols:
-            spreadsheet.del_worksheet(ws)
-            ws = spreadsheet.add_worksheet(sheet_name, rows=100, cols=len(expected_cols))
-            ws.append_row(expected_cols)
-            st.warning(f"⚠️ Feuille '{sheet_name}' réinitialisée (structure incorrecte).")
-        return ws
-    except gspread.exceptions.WorksheetNotFound:
-        ws = spreadsheet.add_worksheet(sheet_name, rows=100, cols=len(expected_cols))
-        ws.append_row(expected_cols)
-        st.info(f"✅ Feuille '{sheet_name}' créée automatiquement.")
-        return ws
-    except Exception as e:
-        st.error(f"Erreur accès feuille '{sheet_name}' : {e}")
-        return None
-
-def get_worksheet(sheet_name):
-    return ensure_sheet_exists(sheet_name)
-
-def fetch_data(sheet_name):
-    ws = ensure_sheet_exists(sheet_name)
-    if not ws:
-        return pd.DataFrame(columns=SHEET_SCHEMAS.get(sheet_name, []))
-    data = ws.get_all_records()
-    if not data:
-        return pd.DataFrame(columns=SHEET_SCHEMAS.get(sheet_name, []))
-    df = pd.DataFrame(data)
-    df.columns = df.columns.map(lambda x: str(x).strip())
-    return df
 
 # -------------------------------------------------------
 #                SÉCURITÉ MOT DE PASSE
@@ -145,9 +170,15 @@ def show_login_page():
         if row.empty:
             st.error("Prénom introuvable.")
             return
-        if hash_password(login_pass) != row["Password"].iloc[0]:
+        
+        # Vérification du mot de passe
+        hashed_input = hash_password(login_pass)
+        stored_hash = row["Password"].iloc[0]
+
+        if hashed_input != stored_hash:
             st.error("Mot de passe incorrect.")
             return
+            
         st.session_state.logged_in = True
         st.session_state.user_name = row["First Name"].iloc[0]
         st.session_state.user_category = row["Category"].iloc[0]
@@ -169,34 +200,42 @@ def show_register_page():
         first_name = st.text_input("Prénom")
         phone = st.text_input("Téléphone")
         password = st.text_input("Mot de passe", type="password")
+        
         driver_data = {}
         if category == "Driver":
             driver_data["Vehicle Brand"] = st.text_input("Marque du véhicule")
             driver_data["Vehicle Type"] = st.selectbox("Type du véhicule", ["Voiture", "Moto"])
             driver_data["Engine Displacement"] = st.text_input("Cylindrée")
+
         submitted = st.form_submit_button("Créer le compte")
+    
     if submitted:
         ok, msg = check_password_strength(password)
         if not ok:
             st.error(msg)
             return
+        
         df = fetch_data("Users")
         if first_name in df["First Name"].values:
             st.error("Ce prénom existe déjà.")
             return
-        ws = get_worksheet("Users")
-        new_row = [
-            category, first_name, phone,
-            hash_password(password),
-            driver_data.get("Vehicle Brand", ""),
-            driver_data.get("Vehicle Type", ""),
-            driver_data.get("Engine Displacement", "")
-        ]
-        new_row = [str(x) if x is not None else "" for x in new_row]
-        ws.append_row(new_row)
+
+        # Construction du dictionnaire de la nouvelle ligne
+        new_user_dict = {
+            "Category": category, 
+            "First Name": first_name, 
+            "Phone": phone,
+            "Password": hash_password(password),
+            "Vehicle Brand": driver_data.get("Vehicle Brand", ""),
+            "Vehicle Type": driver_data.get("Vehicle Type", ""),
+            "Engine Displacement": driver_data.get("Engine Displacement", "")
+        }
+        
+        append_row("Users", new_user_dict)
         st.success("Compte créé ! Vous pouvez vous connecter.")
         st.session_state.page = "login"
         st.rerun()
+
     if st.button("Retour"):
         st.session_state.page = "login"
 
@@ -212,22 +251,23 @@ def show_client_page():
         end_point = st.text_input("Arrivée")
         budget = st.number_input("Budget (Ariary)", min_value=1000)
         submitted = st.form_submit_button("Créer la course")
+    
     if submitted:
         if not start_point or not end_point:
             st.error("Veuillez remplir tous les champs.")
             return
+        
         try:
-            ws = get_worksheet("Trips")
-            new_trip = [
-                str(st.session_state.user_name or ""),
-                str(st.session_state.user_phone or ""),
-                str(start_point or ""),
-                str(end_point or ""),
-                str(int(budget)),
-                "Available",
-                ""
-            ]
-            ws.append_row(new_trip)
+            new_trip = {
+                "Client Name": str(st.session_state.user_name or ""),
+                "Client Phone": str(st.session_state.user_phone or ""),
+                "Start Point": str(start_point or ""),
+                "End Point": str(end_point or ""),
+                "Budget": str(int(budget)), # Assurez-vous que c'est une chaîne pour JSON
+                "Status": "Available",
+                "Driver": ""
+            }
+            append_row("Trips", new_trip)
             st.success("✅ Course ajoutée avec succès !")
         except Exception as e:
             st.error(f"Erreur lors de l’ajout de la course : {e}")
@@ -238,30 +278,41 @@ def show_client_page():
 def show_driver_page():
     st.title(f"🏍️ Driver : Bonjour {st.session_state.user_name}")
     logout_button()
+    
     df = fetch_data("Trips")
+    
+    # 1. Vérification des courses acceptées par ce driver
     accepted = df[(df["Status"] == "Accepted") & (df["Driver"] == st.session_state.user_name)]
+    
     if not accepted.empty:
         row = accepted.iloc[0]
+        # On utilise l'index du DataFrame pour la mise à jour
+        df_index = accepted.index[0] 
+
         st.warning(f"🚨 Course en cours : {row['Start Point']} → {row['End Point']}")
+        
         if st.button("Terminer la course"):
-            ws = get_worksheet("Trips")
-            gs_row = accepted.index[0] + 2
-            ws.update_cell(gs_row, df.columns.get_loc("Status") + 1, "Completed")
-            st.session_state.driver_accepted_trip = None
-            st.success("Course terminée !")
-            st.rerun()
+            if update_row_field("Trips", df_index, "Status", "Completed"):
+                st.session_state.driver_accepted_trip = None
+                st.success("Course terminée !")
+                st.rerun()
+            else:
+                st.error("Erreur lors de la mise à jour de la course.")
         return
+    
+    # 2. Affichage des courses disponibles
     avail = df[df["Status"] == "Available"]
     st.header(f"Courses disponibles ({len(avail)})")
     st.markdown("---")
+    
     if avail.empty:
         st.info("Aucune course disponible.")
         return
-    for index, row in avail.iterrows():
-        gs_row = index + 2
+    
+    for df_index, row in avail.iterrows():
         st.markdown(f"""
             <div class="trip-card" style="padding:10px; border-radius:10px; background:#f8f9fa; margin-bottom:10px;">
-                <h3>🚗 Course #{index + 1}</h3>
+                <h3>🚗 Course #{df_index + 1}</h3>
                 <p>👤 Client : <b>{row['Client Name']}</b></p>
                 <p>📞 Téléphone : <b>{row['Client Phone']}</b></p>
                 <p>📍 Départ : <b>{row['Start Point']}</b></p>
@@ -269,26 +320,38 @@ def show_driver_page():
                 <p>💰 Budget : <b>{row['Budget']} Ar</b></p>
             </div>
         """, unsafe_allow_html=True)
-        if st.button("✅ Accepter cette course", key=f"acc_{index}"):
-            ws = get_worksheet("Trips")
-            ws.update_cell(gs_row, df.columns.get_loc("Status") + 1, "Accepted")
-            ws.update_cell(gs_row, df.columns.get_loc("Driver") + 1, st.session_state.user_name)
-            st.session_state.driver_accepted_trip = f"{row['Start Point']} → {row['End Point']}"
-            st.success("Course acceptée ✅")
-            st.rerun()
+        
+        if st.button("✅ Accepter cette course", key=f"acc_{df_index}"):
+            # Mise à jour des deux champs dans la ligne Trips correspondante
+            status_ok = update_row_field("Trips", df_index, "Status", "Accepted")
+            driver_ok = update_row_field("Trips", df_index, "Driver", st.session_state.user_name)
+            
+            if status_ok and driver_ok:
+                st.session_state.driver_accepted_trip = f"{row['Start Point']} → {row['End Point']}"
+                st.success("Course acceptée ✅")
+                st.rerun()
+            else:
+                st.error("Erreur lors de l'acceptation de la course.")
+                
         st.markdown("---")
 
 # -------------------------------------------------------
 #                ROUTING PRINCIPAL
 # -------------------------------------------------------
+
+# ⚠️ IMPORTANT : Initialisation des données JSON en mémoire au démarrage
+# Ceci doit être fait avant le routing
+load_data() 
+
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 if "page" not in st.session_state:
     st.session_state.page = "login"
 
-if not client:
-    st.error("Impossible de se connecter à Google Sheets.")
-elif st.session_state.page == "register":
+# Suppression de la vérification de la connexion Google Sheets
+# puisque nous utilisons la méthode de simulation JSON en mémoire
+
+if st.session_state.page == "register":
     show_register_page()
 elif st.session_state.logged_in:
     if st.session_state.user_category == "Client":
