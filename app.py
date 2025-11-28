@@ -86,11 +86,11 @@ INITIAL_DATA = {
             "Category": "Admin",
             "First Name": "admin",
             "Phone": "000000000",
-            "Password": "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918",  # 'adminpass' hashé (CONFIRMÉ)
+            "Password": "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918",
             "Vehicle Brand": "",
             "Vehicle Type": "",
             "Engine Displacement": "",
-            "Is Online": false
+            "Is Online": False
         },
         {
             "Category": "Client",
