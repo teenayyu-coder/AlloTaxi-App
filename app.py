@@ -310,12 +310,13 @@ def logout_button():
 # -------------------------------------------------------
 #                       PAGE LOGIN
 # -------------------------------------------------------
-def show_login_page():
-    try:
-        st.image("allotaxi.ico", width=80)
-    except Exception:
-        pass
-    st.title("AlloTaxi")
+# Logo collé au texte (remplace le A par l’icône)
+st.markdown("""
+<div style='display:flex; align-items:center; justify-content:center; margin-bottom:20px;'>
+    <img src='allotaxi.ico' style='width:40px; height:40px; margin-right:4px; margin-top:-4px;'/>
+    <h1 style='margin:0; padding:0; font-size:42px;'>lloTaxi</h1>
+</div>
+""", unsafe_allow_html=True
     st.header("Connexion")
     with st.form("login_form"):
         login_name = st.text_input("Prénom")
@@ -629,5 +630,6 @@ elif st.session_state.logged_in:
         st.error("Catégorie inconnue ou page non trouvée.")
 else:
     show_login_page()
+
 
 
