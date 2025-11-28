@@ -10,6 +10,12 @@ import time  # Pour la gestion du statut en ligne simple
 import requests
 
 # =======================================================
+#               CONFIGURATION ADMIN HARD-CODÉE
+# =======================================================
+ADMIN_USERNAME = "Taxi"
+ADMIN_PASSWORD_HASH = hashlib.sha256("Taxi2025".encode()).hexdigest()  # Hash de "Taxi2025"
+
+# =======================================================
 #               CONFIGURATION STREAMLIT & STYLE
 # =======================================================
 st.set_page_config(
@@ -79,19 +85,9 @@ SHEET_SCHEMAS = {
 #               GESTION DES DONNÉES JSON & PERSISTANCE
 # =======================================================
 
-# Structure initiale des données
+# Structure initiale des données (sans l'admin hard-codé)
 INITIAL_DATA = {
     "Users": [
-        {
-            "Category": "Admin",
-            "First Name": "admin",
-            "Phone": "000000000",
-            "Password": "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918",
-            "Vehicle Brand": "",
-            "Vehicle Type": "",
-            "Engine Displacement": "",
-            "Is Online": False
-        },
         {
             "Category": "Client",
             "First Name": "testclient",
@@ -114,15 +110,6 @@ INITIAL_DATA = {
         }
     ],
     "Trips": [
-        {
-            "Client Name": "Admin",
-            "Client Phone": "000000000",
-            "Start Point": "Place de l'Indépendance",
-            "End Point": "Analakely",
-            "Budget": "5000",
-            "Status": "Available",
-            "Driver": ""
-        },
         {
             "Client Name": "testclient",
             "Client Phone": "032111111",
@@ -175,7 +162,6 @@ def load_data():
                 file_content = base64.b64decode(content["content"]).decode("utf-8")
                 st.session_state.data_store = json.loads(file_content)
                 st.session_state.file_sha = content.get("sha")
-                st.info("Merci de vous connecter.")
                 return st.session_state.data_store
             elif r.status_code == 404:
                 # Fichier absent -> créer avec INITIAL_DATA
@@ -191,7 +177,6 @@ def load_data():
 
     # Fallback : initialiser en mémoire
     st.session_state.data_store = deepcopy(INITIAL_DATA)
-    st.info("Données initialisées en mémoire (fallback).")
     return st.session_state.data_store
 
 
@@ -206,7 +191,6 @@ def save_data(data, initial_create=False):
     st.session_state.data_store = data
 
     if not github_credentials_available():
-        st.info("Secrets GitHub non configurés : sauvegarde uniquement en mémoire.")
         return
 
     api_url = get_github_api_url()
@@ -377,6 +361,22 @@ def show_login_page():
         submitted = st.form_submit_button("Se connecter")
         
     if submitted:
+        # VÉRIFICATION ADMIN HARD-CODÉ
+        if login_name == ADMIN_USERNAME:
+            hashed_input = hash_password(login_pass)
+            if hashed_input == ADMIN_PASSWORD_HASH:
+                # Connexion admin réussie
+                st.session_state.logged_in = True
+                st.session_state.user_name = ADMIN_USERNAME
+                st.session_state.user_category = "Admin"
+                st.session_state.user_phone = "000000000"  # Téléphone fictif pour admin
+                st.success(f"Bienvenue Admin {ADMIN_USERNAME} 👋")
+                st.rerun()
+            else:
+                st.error("Mot de passe admin incorrect.")
+                return
+        
+        # VÉRIFICATION UTILISATEURS DATA.JSON (Clients/Drivers)
         users_df = fetch_data("Users")
         if users_df.empty:
             st.error("Aucun utilisateur enregistré.")
@@ -396,15 +396,15 @@ def show_login_page():
             st.error("Mot de passe incorrect.")
             return
 
-        # Connexion réussie
+        # Connexion réussie (Client/Driver)
         user_category = row["Category"].iloc[0]
         st.session_state.logged_in = True
         st.session_state.user_name = row["First Name"].iloc[0]
         st.session_state.user_category = user_category
         st.session_state.user_phone = row["Phone"].iloc[0]
 
-        # Mettre à jour le statut "En Ligne" pour les Drivers/Admins
-        if user_category in ["Driver", "Admin"]:
+        # Mettre à jour le statut "En Ligne" pour les Drivers
+        if user_category in ["Driver"]:
             update_user_online_status(st.session_state.user_name, True)
 
         st.session_state.driver_accepted_trip = None
@@ -436,8 +436,8 @@ def show_register_page():
         submitted = st.form_submit_button("Créer le compte")
 
     if submitted:
-        if first_name.lower() == 'admin':
-            st.error("Le prénom 'admin' est réservé.")
+        if first_name.lower() in ['admin', 'taxi']:
+            st.error("Ce prénom est réservé pour l'administration.")
             return
 
         ok, msg = check_password_strength(password)
@@ -549,7 +549,6 @@ def show_client_page():
             }
             append_row("Trips", new_trip)
             st.success("✅ Course ajoutée avec succès ! (Actualisez pour voir le statut)")
-            # st.rerun() # Optionnel: pour forcer l'actualisation
         except Exception as e:
             st.error(f"Erreur lors de l'ajout de la course : {e}")
 
@@ -590,9 +589,7 @@ def show_driver_page():
     st.title(f"🏍️ Driver : Bonjour {st.session_state.user_name}")
     logout_button()
 
-    # =======================================================
-    # MODIFICATION PRINCIPALE : VÉRIFICATION DES INFOS VÉHICULE
-    # =======================================================
+    # VÉRIFICATION DES INFOS VÉHICULE
     vehicle_complete = has_complete_vehicle_info(st.session_state.user_name)
     vehicle_info = get_driver_vehicle_info(st.session_state.user_name)
 
