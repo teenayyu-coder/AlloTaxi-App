@@ -474,7 +474,7 @@ def show_register_page():
 # ----------------- PAGE ADMIN --------------------------
 def show_admin_page():
     """Affiche le tableau de bord d'administration."""
-    st.title(f"👑 Admin : Gestion des Drivers")
+    st.title(f"Admin : Gestion des Drivers")
     logout_button()
     st.markdown("---")
 
@@ -521,7 +521,7 @@ def show_admin_page():
 # ----------------- PAGE CLIENT --------------------------
 def show_client_page():
     """Affiche la page du client (création de course et historique)."""
-    st.title(f"👋 Client : Bonjour {st.session_state.user_name}")
+    st.title(f"Client : Bonjour {st.session_state.user_name}")
     logout_button()
     st.markdown("---")
 
@@ -586,7 +586,7 @@ def show_client_page():
 # ----------------- PAGE DRIVER --------------------------
 def show_driver_page():
     """Affiche la page du driver (gestion des courses acceptées et disponibles)."""
-    st.title(f"🏍️ Driver : Bonjour {st.session_state.user_name}")
+    st.title(f"Driver : Bonjour {st.session_state.user_name}")
     logout_button()
 
     # VÉRIFICATION DES INFOS VÉHICULE
@@ -620,7 +620,7 @@ def show_driver_page():
     if not driver_row.empty:
         driver_df_index = driver_row.index[0]
         
-        with st.expander("✏️ Modifier mes informations véhicule", expanded=not vehicle_complete):
+        with st.expander("Modifier mes informations véhicule", expanded=not vehicle_complete):
             col_brand, col_type, col_engine = st.columns(3)
             
             with col_brand:
@@ -747,3 +747,4 @@ elif st.session_state.logged_in:
         st.error("Catégorie inconnue ou page non trouvée.")
 else:
     show_login_page()
+
