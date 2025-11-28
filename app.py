@@ -305,8 +305,8 @@ def show_login_page():
             <div style="display:flex; align-items:center; justify-content:center; margin-bottom:25px;">
                 <img src="data:image/x-icon;base64,{LOGO_BASE64}"
                      style="width:55px; height:55px; margin-right:6px;"/>
-                <h1 style="margin:0; padding:0; font-size:48px; font-weight:700;">
-                lloTaxi
+                <h1 style="margin:0; padding:0; font-size:60px; font-weight:1000;">
+                    lloTaxi
                 </h1>
             </div>
             """,
@@ -391,4 +391,5 @@ elif st.session_state.logged_in:
         show_driver_page()
 else:
     show_login_page()
+
 
