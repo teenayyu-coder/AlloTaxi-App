@@ -19,7 +19,7 @@ st.set_page_config(
 )
 
 # -------------------------------------------------------
-#   🔵 NOUVEAU : fonction pour charger le logo (base64)
+#   🔵 FONCTION POUR CHARGER LE LOGO (BASE64)
 # -------------------------------------------------------
 def load_logo_base64():
     try:
@@ -297,14 +297,17 @@ def show_login_page():
     """Affiche la page de connexion."""
 
     # ---------------------------------------------------
-    #   🔵 TITRE AVEC LOGO
+    #   🔵 TITRE AVEC LOGO COLLÉ : [LOGO]lloTaxi
     # ---------------------------------------------------
     if LOGO_BASE64:
         st.markdown(
             f"""
-            <div style="text-align:center;">
-                <img src="data:image/x-icon;base64,{LOGO_BASE64}" width="80"/>
-                <h1 style="margin-top:10px;">lloTaxi</h1>
+            <div style="display:flex; align-items:center; justify-content:center; margin-bottom:25px;">
+                <img src="data:image/x-icon;base64,{LOGO_BASE64}"
+                     style="width:55px; height:55px; margin-right:6px;"/>
+                <h1 style="margin:0; padding:0; font-size:48px; font-weight:700;">
+                    lloTaxi
+                </h1>
             </div>
             """,
             unsafe_allow_html=True
@@ -347,37 +350,24 @@ def show_login_page():
         st.session_state.page = "register"
 
 
-
 # =======================================================
-# ... (TOUT LE RESTE DE TON CODE CI-DESSOUS EST IDENTIQUE)
+#   LES AUTRES PAGES (IDENTIQUES À TON CODE INITIAL)
 # =======================================================
 
-# ----------------- PAGE REGISTER --------------------------
 def show_register_page():
     ...
-# (aucune modification)
 
 
-
-# ----------------- PAGE ADMIN --------------------------
 def show_admin_page():
     ...
-# (identique)
 
 
-
-# ----------------- PAGE CLIENT --------------------------
 def show_client_page():
     ...
-# (identique)
 
 
-
-# ----------------- PAGE DRIVER --------------------------
 def show_driver_page():
     ...
-# (identique)
-
 
 
 # =======================================================
