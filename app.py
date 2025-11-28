@@ -140,7 +140,7 @@ INITIAL_DATA = {
     ]
 }
 
-DEFAULT_REPO = "teenayyu-coder/AlloTaxi-App"
+DEFAULT_REPO = "teenayyu-coder/A-App"
 DEFAULT_FILE = "data.json"
 
 
@@ -306,7 +306,7 @@ def show_login_page():
                 <img src="data:image/x-icon;base64,{LOGO_BASE64}"
                      style="width:55px; height:55px; margin-right:6px;"/>
                 <h1 style="margin:0; padding:0; font-size:48px; font-weight:700;">
-                    lloTaxi
+                lloTaxi
                 </h1>
             </div>
             """,
@@ -391,3 +391,4 @@ elif st.session_state.logged_in:
         show_driver_page()
 else:
     show_login_page()
+
