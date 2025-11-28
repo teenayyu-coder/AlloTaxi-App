@@ -8,7 +8,7 @@
             "Vehicle Brand": "Yamaha",
             "Vehicle Type": "Moto",
             "Engine Displacement": "125",
-            "Is Online": true
+            "Is Online": false
         },
         {
             "Category": "Client",
