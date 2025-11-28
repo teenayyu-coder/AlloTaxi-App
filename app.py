@@ -48,6 +48,13 @@ def load_css():
     .status-accepted { color: #ffc107; font-weight: bold; }
     .status-completed { color: #6c757d; font-weight: bold; }
     .status-cancelled { color: #dc3545; font-weight: bold; }
+    .vehicle-warning { 
+        background: #fff3cd; 
+        border: 1px solid #ffeaa7; 
+        padding: 15px; 
+        border-radius: 8px; 
+        margin: 20px 0;
+    }
     """
     st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
 
@@ -264,6 +271,43 @@ def update_row_field(sheet_name, index_to_update, field, new_value):
     return False
 
 
+# =======================================================
+#               NOUVELLE FONCTION : VÉRIFICATION VÉHICULE
+# =======================================================
+def has_complete_vehicle_info(driver_name):
+    """Vérifie si le driver a rempli toutes les informations de son véhicule."""
+    df_users = fetch_data("Users")
+    driver_row = df_users[(df_users["First Name"] == driver_name) & (df_users["Category"] == "Driver")]
+    
+    if driver_row.empty:
+        return False
+    
+    vehicle_brand = str(driver_row["Vehicle Brand"].iloc[0] or "").strip()
+    vehicle_type = str(driver_row["Vehicle Type"].iloc[0] or "").strip()
+    engine_displacement = str(driver_row["Engine Displacement"].iloc[0] or "").strip()
+    
+    # Vérifie que tous les champs sont remplis (non vides après strip)
+    return bool(vehicle_brand and vehicle_type and engine_displacement)
+
+
+def get_driver_vehicle_info(driver_name):
+    """Retourne les informations du véhicule du driver formatées."""
+    df_users = fetch_data("Users")
+    driver_row = df_users[(df_users["First Name"] == driver_name) & (df_users["Category"] == "Driver")]
+    
+    if driver_row.empty:
+        return "Non renseigné"
+    
+    vehicle_brand = str(driver_row["Vehicle Brand"].iloc[0] or "").strip()
+    vehicle_type = str(driver_row["Vehicle Type"].iloc[0] or "").strip()
+    engine_displacement = str(driver_row["Engine Displacement"].iloc[0] or "").strip()
+    
+    if vehicle_brand and vehicle_type and engine_displacement:
+        return f"{vehicle_brand} {vehicle_type} ({engine_displacement})"
+    else:
+        return "❌ INCOMPLET - Complétez votre profil"
+
+
 # Fonction pour mettre à jour le statut en ligne d'un utilisateur
 def update_user_online_status(user_name, is_online):
     df_users = fetch_data("Users")
@@ -454,6 +498,7 @@ def show_admin_page():
         trip_in_progress = accepted_trips[accepted_trips["Driver"] == driver_name]
 
         status_online = "🟢 En Ligne" if driver['Is Online'] else "🔴 Hors Ligne"
+        vehicle_info = get_driver_vehicle_info(driver_name)
 
         if not trip_in_progress.empty:
             trip_info = f"En Course: {trip_in_progress.iloc[0]['Start Point']} → {trip_in_progress.iloc[0]['End Point']} (Client: {trip_in_progress.iloc[0]['Client Name']})"
@@ -464,6 +509,7 @@ def show_admin_page():
 
         driver_list.append({
             "Driver": driver_name,
+            "Véhicule": vehicle_info,
             "Statut Connexion": status_online,
             "Statut Course": status_race,
             "Course en Cours": trip_info
@@ -505,7 +551,7 @@ def show_client_page():
             st.success("✅ Course ajoutée avec succès ! (Actualisez pour voir le statut)")
             # st.rerun() # Optionnel: pour forcer l'actualisation
         except Exception as e:
-            st.error(f"Erreur lors de l’ajout de la course : {e}")
+            st.error(f"Erreur lors de l'ajout de la course : {e}")
 
     st.markdown("---")
     st.header("Historique de vos courses")
@@ -543,6 +589,71 @@ def show_driver_page():
     """Affiche la page du driver (gestion des courses acceptées et disponibles)."""
     st.title(f"🏍️ Driver : Bonjour {st.session_state.user_name}")
     logout_button()
+
+    # =======================================================
+    # MODIFICATION PRINCIPALE : VÉRIFICATION DES INFOS VÉHICULE
+    # =======================================================
+    vehicle_complete = has_complete_vehicle_info(st.session_state.user_name)
+    vehicle_info = get_driver_vehicle_info(st.session_state.user_name)
+
+    st.markdown("---")
+    
+    # Affichage du statut du véhicule
+    col1, col2 = st.columns([3, 2])
+    with col1:
+        st.metric("Votre véhicule", vehicle_info)
+    with col2:
+        if vehicle_complete:
+            st.success("✅ Profil véhicule complet")
+        else:
+            st.error("❌ Profil véhicule incomplet")
+
+    if not vehicle_complete:
+        st.markdown("""
+            <div class="vehicle-warning">
+                <h4>⚠️ Action requise : Compléter votre profil véhicule</h4>
+                <p>Vous devez remplir <b>toutes</b> les informations de votre véhicule 
+                (Marque, Type, Cylindrée) avant de pouvoir accepter votre première course.</p>
+            </div>
+        """, unsafe_allow_html=True)
+
+    df = fetch_data("Users")
+    driver_row = df[(df["First Name"] == st.session_state.user_name) & (df["Category"] == "Driver")]
+    
+    if not driver_row.empty:
+        driver_df_index = driver_row.index[0]
+        
+        with st.expander("✏️ Modifier mes informations véhicule", expanded=not vehicle_complete):
+            col_brand, col_type, col_engine = st.columns(3)
+            
+            with col_brand:
+                current_brand = str(driver_row["Vehicle Brand"].iloc[0] or "")
+                new_brand = st.text_input("Marque du véhicule", value=current_brand, key="brand_input")
+                if st.button("Sauvegarder Marque", key="save_brand"):
+                    update_row_field("Users", driver_df_index, "Vehicle Brand", new_brand)
+                    st.success("Marque sauvegardée !")
+                    st.rerun()
+            
+            with col_type:
+                current_type = str(driver_row["Vehicle Type"].iloc[0] or "")
+                new_type = st.selectbox("Type du véhicule", ["Voiture", "Moto"], index=0 if current_type == "Voiture" else 1, key="type_input")
+                if st.button("Sauvegarder Type", key="save_type"):
+                    update_row_field("Users", driver_df_index, "Vehicle Type", new_type)
+                    st.success("Type sauvegardé !")
+                    st.rerun()
+            
+            with col_engine:
+                current_engine = str(driver_row["Engine Displacement"].iloc[0] or "")
+                new_engine = st.text_input("Cylindrée (ex: 1.6L)", value=current_engine, key="engine_input")
+                if st.button("Sauvegarder Cylindrée", key="save_engine"):
+                    update_row_field("Users", driver_df_index, "Engine Displacement", new_engine)
+                    st.success("Cylindrée sauvegardée !")
+                    st.rerun()
+
+    # Si le véhicule n'est pas complet, on n'affiche pas les courses
+    if not vehicle_complete:
+        st.warning("💡 Complétez votre profil véhicule pour voir les courses disponibles.")
+        return
 
     df = fetch_data("Trips")
 
