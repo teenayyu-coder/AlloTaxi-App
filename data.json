@@ -1,5 +1,17 @@
 {
-    "Users": [
+    "Users": [ // <-- C'est un tableau (liste) qui contient TOUS les utilisateurs
+        // 1. L'utilisateur Admin
+        {
+            "Category": "Admin",
+            "First Name": "admin",
+            "Phone": "000000000",
+            "Password": "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918",
+            "Vehicle Brand": "",
+            "Vehicle Type": "",
+            "Engine Displacement": "",
+            "Is Online": false
+        },
+        // 2. L'utilisateur Driver (Notez la virgule après l'objet Admin)
         {
             "Category": "Driver",
             "First Name": "Steve Antonio",
@@ -10,6 +22,7 @@
             "Engine Displacement": "125",
             "Is Online": false
         },
+        // 3. L'utilisateur Client (Pas de virgule après le dernier élément)
         {
             "Category": "Client",
             "First Name": "Sitivakely",
