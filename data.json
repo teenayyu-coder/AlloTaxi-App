@@ -10,7 +10,6 @@
             "Engine Displacement": "",
             "Is Online": false
         },
-    
         {
             "Category": "Driver",
             "First Name": "Steve Antonio",
@@ -19,9 +18,8 @@
             "Vehicle Brand": "Yamaha",
             "Vehicle Type": "Moto",
             "Engine Displacement": "125",
-            "Is Online": false
+            "Is Online": true
         },
-
         {
             "Category": "Client",
             "First Name": "Sitivakely",
