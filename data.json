@@ -38,7 +38,7 @@
             "Vehicle Brand": "",
             "Vehicle Type": "Voiture",
             "Engine Displacement": "",
-            "Is Online": false
+            "Is Online": true
         }
     ],
     "Trips": [
