@@ -1,6 +1,5 @@
 {
-    "Users": [ // <-- C'est un tableau (liste) qui contient TOUS les utilisateurs
-        // 1. L'utilisateur Admin
+    "Users": [
         {
             "Category": "Admin",
             "First Name": "admin",
@@ -11,7 +10,7 @@
             "Engine Displacement": "",
             "Is Online": false
         },
-        // 2. L'utilisateur Driver (Notez la virgule après l'objet Admin)
+    
         {
             "Category": "Driver",
             "First Name": "Steve Antonio",
@@ -22,7 +21,7 @@
             "Engine Displacement": "125",
             "Is Online": false
         },
-        // 3. L'utilisateur Client (Pas de virgule après le dernier élément)
+
         {
             "Category": "Client",
             "First Name": "Sitivakely",
