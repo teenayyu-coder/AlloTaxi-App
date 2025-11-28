@@ -20,5 +20,16 @@
             "Engine Displacement": "",
             "Is Online": false
         }
+    ],
+    "Trips": [
+        {
+            "Client Name": "Sitivakely",
+            "Client Phone": "0323550778",
+            "Start Point": "Antaninandro",
+            "End Point": "Faravohitra",
+            "Budget": "5000",
+            "Status": "Available",
+            "Driver": ""
+        }
     ]
 }
