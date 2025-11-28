@@ -8,7 +8,7 @@
             "Vehicle Brand": "",
             "Vehicle Type": "Voiture",
             "Engine Displacement": "",
-            "Is Online": false
+            "Is Online": true
         },
         {
             "Category": "Client",
