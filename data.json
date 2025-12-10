@@ -18,7 +18,7 @@
             "Vehicle Brand": "Volkswagen",
             "Vehicle Type": "Voiture",
             "Engine Displacement": "1L4",
-            "Is Online": false
+            "Is Online": true
         },
         {
             "Category": "Client",
