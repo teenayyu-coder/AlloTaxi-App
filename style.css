@@ -1,4 +1,4 @@
-/* style.css amélioré avec effet néon jaune interactif */
+/* style.css amélioré avec effet néon jaune interactif - TEXTE NOIR */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 * {
@@ -8,7 +8,7 @@
 body {
     font-family: 'Inter', sans-serif;
     background: transparent;
-    color: #ffc107;
+    color: #000000; /* ✅ TEXTE NOIR */
     min-height: 100vh;
     padding: 20px;
     margin: 0;
@@ -16,7 +16,7 @@ body {
 
 /* Effet néon jaune pour le header principal - animation plus dynamique */
 .main-header {
-    color: #ffc107;
+    color: #000000; /* ✅ TEXTE NOIR */
     text-align: center;
     margin-bottom: 40px;
     font-size: 2.5rem;
@@ -136,6 +136,7 @@ input[type="submit"]:active {
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
+    color: #000000; /* ✅ TEXTE NOIR */
 }
 
 .trip-card::before {
@@ -163,18 +164,19 @@ input[type="submit"]:active {
         inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
-.trip-card h3 {
-    color: #ffc107;
+.trip-card h3,
+.trip-card h4 {
+    color: #000000 !important; /* ✅ TEXTE NOIR forcé */
     border-bottom: 3px solid rgba(255, 193, 7, 0.5);
     padding-bottom: 15px;
     margin-top: 0;
     margin-bottom: 20px;
     font-weight: 700;
     position: relative;
-    text-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
 }
 
-.trip-card h3::after {
+.trip-card h3::after,
+.trip-card h4::after {
     content: '';
     position: absolute;
     bottom: -3px;
@@ -191,12 +193,12 @@ input[type="submit"]:active {
     to { box-shadow: 0 0 25px #ffc107, 0 0 35px #ffc107; }
 }
 
-/* Tous les statuts en jaune néon avec animations */
+/* Tous les statuts en jaune néon avec animations - texte noir */
 .status-available, 
 .status-accepted, 
 .status-completed, 
 .status-cancelled {
-    color: #ffc107;
+    color: #ffc107 !important; /* ✅ JAUNE pour statuts uniquement */
     font-weight: 700;
     text-shadow: 0 0 10px #ffc107;
     animation: statusGlow 2s ease-in-out infinite alternate;
@@ -228,7 +230,7 @@ input[type="submit"]:active {
     50% { transform: scale(1.5); }
 }
 
-/* Avertissement véhicule avec néon jaune */
+/* Avertissement véhicule avec néon jaune - texte noir */
 .vehicle-warning { 
     background: rgba(255, 193, 7, 0.1);
     border: 3px solid rgba(255, 193, 7, 0.6);
@@ -241,7 +243,7 @@ input[type="submit"]:active {
         0 0 40px rgba(255, 193, 7, 0.2),
         inset 0 1px 0 rgba(255, 255, 255, 0.3);
     position: relative;
-    color: #ffc107;
+    color: #000000; /* ✅ TEXTE NOIR */
 }
 
 .vehicle-warning::before {
@@ -273,13 +275,19 @@ input[type="submit"]:active {
     }
 }
 
-/* Texte général en jaune */
-h1, h2, h3, h4, h5, h6, p, span, div {
-    color: #ffc107;
+/* TOUS les textes en NOIR (sauf statuts et boutons) */
+h1, h2, h3, h4, h5, h6, p, span, div, label {
+    color: #000000 !important;
 }
 
-h1, h2, h3 {
+h1.main-header, h2.main-header, h3.main-header {
+    color: #000000 !important; /* ✅ Header texte noir */
     text-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
+}
+
+/* Streamlit spécifique - forcer texte noir */
+.stMarkdown h1, .stMarkdown h2, .stMarkdown h3, .stMarkdown p {
+    color: #000000 !important;
 }
 
 /* Améliorations responsive */
