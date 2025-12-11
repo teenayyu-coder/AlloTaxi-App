@@ -69,6 +69,15 @@
             "Budget": "7000",
             "Status": "Completed",
             "Driver": "Steve Antonio"
+        },
+        {
+            "Client Name": "Marie",
+            "Client Phone": "0346755379",
+            "Start Point": "Faravohitra",
+            "End Point": "Ambohipotsy",
+            "Budget": "1000",
+            "Status": "Available",
+            "Driver": ""
         }
     ]
 }
