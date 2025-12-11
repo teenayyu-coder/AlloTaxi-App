@@ -19,7 +19,7 @@ ADMIN_PASSWORD_HASH = hashlib.sha256("adminpass".encode()).hexdigest() # ✅ adm
 #               CONFIGURATION STREAMLIT
 # =======================================================
 st.set_page_config(
-    page_title="AlloTaxi",
+  page_title="AlloTaxi",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -705,4 +705,5 @@ elif st.session_state.logged_in:
         show_driver_page()
 else:
     show_login_page()
+
 
