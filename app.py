@@ -40,6 +40,7 @@ def load_css():
         .status-completed {color: #6c757d; font-weight: bold;}
         .status-cancelled {color: #dc3545; font-weight: bold;}
         .vehicle-warning {background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 8px; margin: 20px 0;}
+        .chrono {font-weight: bold; color: #007bff;}
         """
         st.markdown(f"<style>{fallback_css}</style>", unsafe_allow_html=True)
 
@@ -51,7 +52,8 @@ load_css()
 SHEET_SCHEMAS = {
     "Users": [
         "Category", "First Name", "Phone", "Password",
-        "Vehicle Brand", "Vehicle Type", "Engine Displacement", "Is Online"
+        "Vehicle Brand", "Vehicle Type", "Engine Displacement", "Is Online",
+        "Login Time", "Delivery Start Time"
     ],
     "Trips": [
         "Client Name", "Client Phone", "Start Point",
@@ -72,7 +74,9 @@ INITIAL_DATA = {
             "Vehicle Brand": "",
             "Vehicle Type": "",
             "Engine Displacement": "",
-            "Is Online": False
+            "Is Online": False,
+            "Login Time": 0,
+            "Delivery Start Time": 0
         },
         {
             "Category": "Driver",
@@ -82,7 +86,9 @@ INITIAL_DATA = {
             "Vehicle Brand": "Peugeot",
             "Vehicle Type": "Voiture",
             "Engine Displacement": "1.0L",
-            "Is Online": False
+            "Is Online": False,
+            "Login Time": 0,
+            "Delivery Start Time": 0
         }
     ],
     "Trips": []
@@ -179,6 +185,15 @@ def update_row_field(sheet_name, index_to_update, field, new_value):
         return True
     return False
 
+def delete_row(sheet_name, index_to_delete):
+    data = load_data()
+    if sheet_name in data and 0 <= index_to_delete < len(data[sheet_name]):
+        deleted_user = data[sheet_name][index_to_delete]
+        del data[sheet_name][index_to_delete]
+        save_data(data)
+        return True
+    return False
+
 # =======================================================
 #               FONCTIONS UTILITAIRES
 # =======================================================
@@ -209,7 +224,59 @@ def update_user_online_status(user_name, is_online):
     user_row = df_users[df_users["First Name"] == user_name]
     if not user_row.empty:
         df_index = user_row.index[0]
+        if is_online:
+            update_row_field("Users", df_index, "Login Time", time.time())
+        else:
+            update_row_field("Users", df_index, "Login Time", 0)
         update_row_field("Users", df_index, "Is Online", is_online)
+
+def get_connection_time(user_name):
+    df_users = fetch_data("Users")
+    user_row = df_users[df_users["First Name"] == user_name]
+    if user_row.empty or not user_row["Is Online"].iloc[0]:
+        return "0s"
+    login_time = user_row["Login Time"].iloc[0]
+    if login_time == 0:
+        return "0s"
+    duration = int(time.time() - login_time)
+    hours, remainder = divmod(duration, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    if hours > 0:
+        return f"{hours}h{minutes:02d}m"
+    elif minutes > 0:
+        return f"{minutes}m{seconds:02d}s"
+    else:
+        return f"{seconds}s"
+
+def get_delivery_time(user_name):
+    df_users = fetch_data("Users")
+    user_row = df_users[df_users["First Name"] == user_name]
+    if user_row.empty or user_row["Delivery Start Time"].iloc[0] == 0:
+        return "0s"
+    start_time = user_row["Delivery Start Time"].iloc[0]
+    duration = int(time.time() - start_time)
+    hours, remainder = divmod(duration, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    if hours > 0:
+        return f"{hours}h{minutes:02d}m"
+    elif minutes > 0:
+        return f"{minutes}m{seconds:02d}s"
+    else:
+        return f"{seconds}s"
+
+def set_delivery_start_time(driver_name):
+    df_users = fetch_data("Users")
+    driver_row = df_users[(df_users["First Name"] == driver_name) & (df_users["Category"] == "Driver")]
+    if not driver_row.empty:
+        df_index = driver_row.index[0]
+        update_row_field("Users", df_index, "Delivery Start Time", time.time())
+
+def reset_delivery_time(driver_name):
+    df_users = fetch_data("Users")
+    driver_row = df_users[(df_users["First Name"] == driver_name) & (df_users["Category"] == "Driver")]
+    if not driver_row.empty:
+        df_index = driver_row.index[0]
+        update_row_field("Users", df_index, "Delivery Start Time", 0)
 
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
@@ -230,6 +297,8 @@ def logout_button():
             for key in ['logged_in', 'page', 'user_name', 'user_category', 'user_phone', 'driver_accepted_trip']:
                 if key in st.session_state:
                     del st.session_state[key]
+            st.session_state.logged_in = False
+            st.session_state.page = "login"
             st.success("Déconnexion réussie ✅")
             st.rerun()
 
@@ -299,45 +368,48 @@ def show_register_page():
         first_name = st.text_input("Prénom")
         phone = st.text_input("Téléphone")
         password = st.text_input("Mot de passe", type="password")
-        submitted = st.form_submit_button("Créer")
-    
-    if submitted:
-        if first_name.lower() in ['admin', 'taxi']:
-            st.error("Prénom réservé")
-            return
-        
-        ok, msg = check_password_strength(password)
-        if not ok:
-            st.error(msg)
-            return
-        
-        df = fetch_data("Users")
-        if first_name in df["First Name"].values:
-            st.error("Prénom existe déjà")
-            return
-        
-        driver_data = {}
-        if category == "Driver":
-            driver_data = {
-                "Vehicle Brand": "",
-                "Vehicle Type": "",
-                "Engine Displacement": ""
+        if st.form_submit_button("Créer"):
+            if first_name.lower() in ['admin', 'taxi']:
+                st.error("Prénom réservé")
+                st.rerun()
+                return
+            
+            ok, msg = check_password_strength(password)
+            if not ok:
+                st.error(msg)
+                st.rerun()
+                return
+            
+            df = fetch_data("Users")
+            if first_name in df["First Name"].values:
+                st.error("Prénom existe déjà")
+                st.rerun()
+                return
+            
+            driver_data = {}
+            if category == "Driver":
+                driver_data = {
+                    "Vehicle Brand": "",
+                    "Vehicle Type": "",
+                    "Engine Displacement": ""
+                }
+            
+            new_user = {
+                "Category": category,
+                "First Name": first_name,
+                "Phone": phone,
+                "Password": hash_password(password),
+                "Vehicle Brand": driver_data.get("Vehicle Brand", ""),
+                "Vehicle Type": driver_data.get("Vehicle Type", ""),
+                "Engine Displacement": driver_data.get("Engine Displacement", ""),
+                "Is Online": False,
+                "Login Time": 0,
+                "Delivery Start Time": 0
             }
-        
-        new_user = {
-            "Category": category,
-            "First Name": first_name,
-            "Phone": phone,
-            "Password": hash_password(password),
-            "Vehicle Brand": driver_data.get("Vehicle Brand", ""),
-            "Vehicle Type": driver_data.get("Vehicle Type", ""),
-            "Engine Displacement": driver_data.get("Engine Displacement", ""),
-            "Is Online": False
-        }
-        
-        append_row("Users", new_user)
-        st.success("✅ Compte créé !")
-        st.rerun()
+            
+            append_row("Users", new_user)
+            st.success("✅ Compte créé !")
+            st.rerun()
     
     if st.button("← Retour"):
         if "page" in st.session_state:
@@ -351,31 +423,83 @@ def show_admin_page():
     df_users = fetch_data("Users")
     df_trips = fetch_data("Trips")
     
-    drivers = df_users[df_users["Category"] == "Driver"]
-    if drivers.empty:
-        st.info("Aucun driver")
-        return
+    # onglet Clients
+    tab1, tab2 = st.tabs(["👥 Clients", "🚗 Drivers"])
     
-    driver_data = []
-    for _, driver in drivers.iterrows():
-        status_online = "🟢 En ligne" if driver['Is Online'] else "🔴 Hors ligne"
-        vehicle_info = get_driver_vehicle_info(driver['First Name'])
-        
-        accepted_trips = df_trips[(df_trips["Status"] == "Accepted") & (df_trips["Driver"] == driver['First Name'])]
-        if not accepted_trips.empty:
-            trip = accepted_trips.iloc[0]
-            course_info = f"{trip['Start Point']} → {trip['End Point']}"
+    with tab1:
+        clients = df_users[df_users["Category"] == "Client"]
+        if not clients.empty:
+            client_data = []
+            for idx, client in clients.iterrows():
+                status_online = "🟢 En ligne" if client['Is Online'] else "🔴 Hors ligne"
+                conn_time = get_connection_time(client['First Name'])
+                client_data.append({
+                    "Client": client['First Name'],
+                    "Téléphone": client['Phone'],
+                    "Statut": status_online,
+                    "Connexion": conn_time,
+                    "Index": idx
+                })
+            st.dataframe(pd.DataFrame(client_data), use_container_width=True)
         else:
-            course_info = "Disponible"
-        
-        driver_data.append({
-            "Driver": driver['First Name'],
-            "Véhicule": vehicle_info,
-            "Connexion": status_online,
-            "Course": course_info
-        })
+            st.info("Aucun client")
     
-    st.dataframe(pd.DataFrame(driver_data), use_container_width=True)
+    with tab2:
+        drivers = df_users[df_users["Category"] == "Driver"]
+        if drivers.empty:
+            st.info("Aucun driver")
+            return
+        
+        driver_data = []
+        for idx, driver in drivers.iterrows():
+            status_online = "🟢 En ligne" if driver['Is Online'] else "🔴 Hors ligne"
+            vehicle_info = get_driver_vehicle_info(driver['First Name'])
+            
+            accepted_trips = df_trips[(df_trips["Status"] == "Accepted") & (df_trips["Driver"] == driver['First Name'])]
+            if not accepted_trips.empty:
+                trip = accepted_trips.iloc[0]
+                course_info = f"{trip['Start Point']} → {trip['End Point']}"
+            else:
+                course_info = "Disponible"
+            
+            conn_time = get_connection_time(driver['First Name'])
+            delivery_time = get_delivery_time(driver['First Name'])
+            
+            driver_data.append({
+                "Driver": driver['First Name'],
+                "Véhicule": vehicle_info,
+                "Connexion": status_online,
+                "Course": course_info,
+                "⏱️": conn_time,
+                "🚚": delivery_time,
+                "Index": idx
+            })
+        
+        st.dataframe(pd.DataFrame(driver_data), use_container_width=True)
+        
+        # Boutons suppression à la fin de chaque ligne
+        st.markdown("---")
+        for row_data in driver_data:
+            col1, col2, col3 = st.columns([4, 1, 1])
+            with col1:
+                st.write(f"**{row_data['Driver']}**")
+            with col2:
+                st.metric("Connexion", row_data['⏱️'])
+            with col3:
+                if st.button("🗑️ Supprimer", key=f"del_driver_{row_data['Index']}"):
+                    if delete_row("Users", row_data['Index']):
+                        st.success(f"✅ {row_data['Driver']} supprimé")
+                        st.rerun()
+        
+        for row_data in client_data:
+            col1, col2 = st.columns([4, 1])
+            with col1:
+                st.write(f"**{row_data['Client']}**")
+            with col2:
+                if st.button("🗑️ Supprimer", key=f"del_client_{row_data['Index']}"):
+                    if delete_row("Users", row_data['Index']):
+                        st.success(f"✅ {row_data['Client']} supprimé")
+                        st.rerun()
 
 def show_client_page():
     st.title(f"👤 Client : {st.session_state.user_name}")
@@ -434,11 +558,13 @@ def show_driver_page():
     vehicle_complete = has_complete_vehicle_info(st.session_state.user_name)
     vehicle_info = get_driver_vehicle_info(st.session_state.user_name)
     
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     with col1:
         st.metric("Véhicule", vehicle_info)
     with col2:
         st.metric("Profil", "✅ Complet" if vehicle_complete else "❌ Incomplet")
+    with col3:
+        st.metric("Connexion", get_connection_time(st.session_state.user_name))
     
     if not vehicle_complete:
         st.error("⚠️ Complétez votre profil véhicule")
@@ -452,18 +578,22 @@ def show_driver_page():
         trip = my_accepted.iloc[0]
         st.warning(f"🚨 Course : {trip['Start Point']} → {trip['End Point']}")
         
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
         with col1:
             if st.button("🏁 Terminer", use_container_width=True):
                 update_row_field("Trips", my_accepted.index[0], "Status", "Completed")
+                reset_delivery_time(st.session_state.user_name)
                 st.success("✅ Course terminée")
                 st.rerun()
         with col2:
             if st.button("❌ Annuler", use_container_width=True):
                 update_row_field("Trips", my_accepted.index[0], "Status", "Available")
                 update_row_field("Trips", my_accepted.index[0], "Driver", "")
+                reset_delivery_time(st.session_state.user_name)
                 st.warning("Course annulée")
                 st.rerun()
+        with col3:
+            st.metric("Livraison", get_delivery_time(st.session_state.user_name))
         return
     
     # Courses disponibles
@@ -483,6 +613,7 @@ def show_driver_page():
             if st.button("✅ Accepter", key=f"accept_{idx}"):
                 update_row_field("Trips", idx, "Status", "Accepted")
                 update_row_field("Trips", idx, "Driver", st.session_state.user_name)
+                set_delivery_start_time(st.session_state.user_name)
                 st.success("✅ Course acceptée !")
                 st.rerun()
 
