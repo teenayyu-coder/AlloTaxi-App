@@ -300,7 +300,7 @@ def hash_password(password):
 
 def check_password_strength(password):
     if len(password) < 6:
-        return False, "Au moins 6 caractères"
+        return False, "Au moins 6 caractères avec une majuscule un chiffre"
     if not re.search(r"[A-Z]", password):
         return False, "Au moins 1 majuscule"
     return True, ""
@@ -710,3 +710,4 @@ elif st.session_state.logged_in:
         show_driver_page()
 else:
     show_login_page()
+
