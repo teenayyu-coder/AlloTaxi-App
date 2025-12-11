@@ -365,6 +365,7 @@ def show_login_page():
     
     if st.button("➕ Créer un compte"):
         st.session_state.page = "register"
+        st.experimental_rerun()
 
 def show_register_page():
     st.title("✍️ Créer un Compte")
