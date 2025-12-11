@@ -379,7 +379,7 @@ def show_login_page():
         st.session_state.page = "register"
 
 def show_register_page():
-    st.title("✍️ Créer un Compte")
+    st.title("Créer un Compte")
     with st.form("register_form"):
         category = st.selectbox("Catégorie", ["Client", "Driver"], key="reg_category")
         first_name = st.text_input("Prénom", key="reg_name")
@@ -710,6 +710,7 @@ elif st.session_state.logged_in:
         show_driver_page()
 else:
     show_login_page()
+
 
 
 
