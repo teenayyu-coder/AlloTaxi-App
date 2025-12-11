@@ -29,7 +29,7 @@
             "Vehicle Brand": "Test",
             "Vehicle Type": "test",
             "Engine Displacement": "test",
-            "Is Online": true,
+            "Is Online": false,
             "Login Time": 0,
             "Delivery Start Time": 1765481032.5059516
         }
