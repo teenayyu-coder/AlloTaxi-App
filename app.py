@@ -713,6 +713,11 @@ elif st.session_state.logged_in:
 else:
     show_login_page()
 
+if st.session_state.get('logged_in', False):
+    
+    # Rafraîchir toutes les secondes (1.0 seconde)
+    time.sleep(1.0)
+    st.rerun()
 
 
 
