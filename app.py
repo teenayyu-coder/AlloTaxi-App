@@ -9,13 +9,11 @@ from copy import deepcopy
 import time
 import requests
 
-
 # =======================================================
 #               CONFIGURATION ADMIN HARD-CODÉE
 # =======================================================
 ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD_HASH = hashlib.sha256("adminpass".encode()).hexdigest()  # ✅ admin/adminpass
-
 
 # =======================================================
 #               CONFIGURATION STREAMLIT
@@ -25,7 +23,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
-
 
 # Charge le CSS externe
 def load_css():
@@ -46,9 +43,7 @@ def load_css():
         """
         st.markdown(f"<style>{fallback_css}</style>", unsafe_allow_html=True)
 
-
 load_css()
-
 
 # =======================================================
 #               SCHEMAS DES DONNÉES
@@ -64,7 +59,6 @@ SHEET_SCHEMAS = {
         "End Point", "Budget", "Status", "Driver"
     ]
 }
-
 
 # =======================================================
 #               GESTION DES DONNÉES JSON & PERSISTANCE
@@ -99,14 +93,11 @@ INITIAL_DATA = {
     "Trips": []
 }
 
-
 DEFAULT_REPO = "teenayyu-coder/AlloTaxi-App"
 DEFAULT_FILE = "data.json"
 
-
 def github_credentials_available():
     return all(k in st.secrets for k in ("GITHUB_TOKEN", "GITHUB_REPO", "GITHUB_FILE"))
-
 
 def get_github_api_url():
     if github_credentials_available():
@@ -116,7 +107,6 @@ def get_github_api_url():
         repo = DEFAULT_REPO
         filename = DEFAULT_FILE
     return f"https://api.github.com/repos/{repo}/contents/{filename}"
-
 
 def load_data():
     if "data_store" in st.session_state:
@@ -144,7 +134,6 @@ def load_data():
     st.session_state.data_store = deepcopy(INITIAL_DATA)
     return st.session_state.data_store
 
-
 def save_data(data, initial_create=False):
     st.session_state.data_store = data
     if not github_credentials_available():
@@ -171,7 +160,6 @@ def save_data(data, initial_create=False):
     except:
         pass
 
-
 def fetch_data(sheet_name):
     data = load_data()
     df = pd.DataFrame(data.get(sheet_name, []))
@@ -186,14 +174,12 @@ def fetch_data(sheet_name):
         df["Delivery Start Time"] = pd.to_numeric(df["Delivery Start Time"], errors='coerce').fillna(0)
     return df
 
-
 def append_row(sheet_name, new_row_dict):
     data = load_data()
     if sheet_name not in data:
         data[sheet_name] = []
     data[sheet_name].append(new_row_dict)
     save_data(data)
-
 
 def update_row_field(sheet_name, index_to_update, field, new_value):
     data = load_data()
@@ -203,7 +189,6 @@ def update_row_field(sheet_name, index_to_update, field, new_value):
         return True
     return False
 
-
 def delete_row(sheet_name, index_to_delete):
     data = load_data()
     if sheet_name in data and 0 <= index_to_delete < len(data[sheet_name]):
@@ -211,7 +196,6 @@ def delete_row(sheet_name, index_to_delete):
         save_data(data)
         return True
     return False
-
 
 # =======================================================
 #               FONCTIONS UTILITAIRES
@@ -226,7 +210,6 @@ def has_complete_vehicle_info(driver_name):
     engine_displacement = str(driver_row["Engine Displacement"].iloc[0] or "").strip()
     return bool(vehicle_brand and vehicle_type and engine_displacement)
 
-
 def get_driver_vehicle_info(driver_name):
     df_users = fetch_data("Users")
     driver_row = df_users[(df_users["First Name"] == driver_name) & (df_users["Category"] == "Driver")]
@@ -239,7 +222,6 @@ def get_driver_vehicle_info(driver_name):
         return f"{vehicle_brand} {vehicle_type} ({engine_displacement})"
     return "❌ INCOMPLET"
 
-
 def update_user_online_status(user_name, is_online):
     df_users = fetch_data("Users")
     user_row = df_users[df_users["First Name"] == user_name]
@@ -250,7 +232,6 @@ def update_user_online_status(user_name, is_online):
         else:
             update_row_field("Users", df_index, "Login Time", 0)
         update_row_field("Users", df_index, "Is Online", is_online)
-
 
 def get_connection_time(user_name):
     df_users = fetch_data("Users")
@@ -270,7 +251,6 @@ def get_connection_time(user_name):
     else:
         return f"{seconds}s"
 
-
 def get_delivery_time(user_name):
     df_users = fetch_data("Users")
     user_row = df_users[df_users["First Name"] == user_name]
@@ -289,14 +269,12 @@ def get_delivery_time(user_name):
     else:
         return f"{seconds}s"
 
-
 def set_delivery_start_time(driver_name):
     df_users = fetch_data("Users")
     driver_row = df_users[(df_users["First Name"] == driver_name) & (df_users["Category"] == "Driver")]
     if not driver_row.empty:
         df_index = driver_row.index[0]
         update_row_field("Users", df_index, "Delivery Start Time", time.time())
-
 
 def reset_delivery_time(driver_name):
     df_users = fetch_data("Users")
@@ -305,10 +283,8 @@ def reset_delivery_time(driver_name):
         df_index = driver_row.index[0]
         update_row_field("Users", df_index, "Delivery Start Time", 0)
 
-
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
-
 
 def check_password_strength(password):
     if len(password) < 6:
@@ -316,7 +292,6 @@ def check_password_strength(password):
     if not re.search(r"[A-Z]", password):
         return False, "Au moins 1 majuscule"
     return True, ""
-
 
 def logout_button():
     col1, col2 = st.columns([4, 1])
@@ -331,7 +306,6 @@ def logout_button():
             st.session_state.page = "login"
             st.success("Déconnexion réussie ✅")
             st.rerun()
-
 
 # =======================================================
 #               PAGES DE L'APPLICATION
@@ -391,8 +365,6 @@ def show_login_page():
     
     if st.button("➕ Créer un compte"):
         st.session_state.page = "register"
-        st.rerun()
-
 
 def show_register_page():
     st.title("✍️ Créer un Compte")
@@ -448,7 +420,6 @@ def show_register_page():
         if "page" in st.session_state:
             del st.session_state.page
         st.rerun()
-
 
 def show_admin_page():
     st.title(f"🔧 Admin : {st.session_state.user_name}")
@@ -541,7 +512,6 @@ def show_admin_page():
                         st.success(f"✅ {row_data['Driver']} supprimé")
                         st.rerun()
 
-
 def show_client_page():
     st.title(f"👤 Client : {st.session_state.user_name}")
     logout_button()
@@ -591,7 +561,6 @@ def show_client_page():
             <p>Driver: {row['Driver'] or 'En attente'}</p>
         </div>
         """, unsafe_allow_html=True)
-
 
 def show_driver_page():
     st.title(f"🚕 Driver : {st.session_state.user_name}")
@@ -659,18 +628,15 @@ def show_driver_page():
                 st.success("✅ Course acceptée !")
                 st.rerun()
 
-
 # =======================================================
 #               ROUTING PRINCIPAL
 # =======================================================
 load_data()
 
-
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 if "page" not in st.session_state:
     st.session_state.page = "login"
-
 
 if st.session_state.page == "register":
     show_register_page()
@@ -683,3 +649,4 @@ elif st.session_state.logged_in:
         show_driver_page()
 else:
     show_login_page()
+
