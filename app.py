@@ -168,6 +168,11 @@ def fetch_data(sheet_name):
     for col in expected_cols:
         if col not in df.columns:
             df[col] = ''
+    # Convertir les timestamps en float pour éviter les erreurs
+    if "Login Time" in df.columns:
+        df["Login Time"] = pd.to_numeric(df["Login Time"], errors='coerce').fillna(0)
+    if "Delivery Start Time" in df.columns:
+        df["Delivery Start Time"] = pd.to_numeric(df["Delivery Start Time"], errors='coerce').fillna(0)
     return df
 
 def append_row(sheet_name, new_row_dict):
@@ -188,7 +193,6 @@ def update_row_field(sheet_name, index_to_update, field, new_value):
 def delete_row(sheet_name, index_to_delete):
     data = load_data()
     if sheet_name in data and 0 <= index_to_delete < len(data[sheet_name]):
-        deleted_user = data[sheet_name][index_to_delete]
         del data[sheet_name][index_to_delete]
         save_data(data)
         return True
@@ -235,8 +239,8 @@ def get_connection_time(user_name):
     user_row = df_users[df_users["First Name"] == user_name]
     if user_row.empty or not user_row["Is Online"].iloc[0]:
         return "0s"
-    login_time = user_row["Login Time"].iloc[0]
-    if login_time == 0:
+    login_time = float(user_row["Login Time"].iloc[0])
+    if login_time == 0 or pd.isna(login_time):
         return "0s"
     duration = int(time.time() - login_time)
     hours, remainder = divmod(duration, 3600)
@@ -251,10 +255,12 @@ def get_connection_time(user_name):
 def get_delivery_time(user_name):
     df_users = fetch_data("Users")
     user_row = df_users[df_users["First Name"] == user_name]
-    if user_row.empty or user_row["Delivery Start Time"].iloc[0] == 0:
+    if user_row.empty:
         return "0s"
-    start_time = user_row["Delivery Start Time"].iloc[0]
-    duration = int(time.time() - start_time)
+    delivery_time = float(user_row["Delivery Start Time"].iloc[0])
+    if delivery_time == 0 or pd.isna(delivery_time):
+        return "0s"
+    duration = int(time.time() - delivery_time)
     hours, remainder = divmod(duration, 3600)
     minutes, seconds = divmod(remainder, 60)
     if hours > 0:
@@ -441,6 +447,20 @@ def show_admin_page():
                     "Index": idx
                 })
             st.dataframe(pd.DataFrame(client_data), use_container_width=True)
+            
+            # Boutons suppression clients
+            st.markdown("---")
+            for row_data in client_data:
+                col1, col2, col3 = st.columns([3, 1, 1])
+                with col1:
+                    st.write(f"**{row_data['Client']}** - {row_data['Connexion']}")
+                with col2:
+                    st.metric("Connexion", row_data['Connexion'])
+                with col3:
+                    if st.button("🗑️ Supprimer", key=f"del_client_{row_data['Index']}"):
+                        if delete_row("Users", row_data['Index']):
+                            st.success(f"✅ {row_data['Client']} supprimé")
+                            st.rerun()
         else:
             st.info("Aucun client")
     
@@ -477,28 +497,20 @@ def show_admin_page():
         
         st.dataframe(pd.DataFrame(driver_data), use_container_width=True)
         
-        # Boutons suppression à la fin de chaque ligne
+        # Boutons suppression drivers
         st.markdown("---")
         for row_data in driver_data:
-            col1, col2, col3 = st.columns([4, 1, 1])
+            col1, col2, col3, col4 = st.columns([3, 1, 1, 1])
             with col1:
                 st.write(f"**{row_data['Driver']}**")
             with col2:
                 st.metric("Connexion", row_data['⏱️'])
             with col3:
+                st.metric("Livraison", row_data['🚚'])
+            with col4:
                 if st.button("🗑️ Supprimer", key=f"del_driver_{row_data['Index']}"):
                     if delete_row("Users", row_data['Index']):
                         st.success(f"✅ {row_data['Driver']} supprimé")
-                        st.rerun()
-        
-        for row_data in client_data:
-            col1, col2 = st.columns([4, 1])
-            with col1:
-                st.write(f"**{row_data['Client']}**")
-            with col2:
-                if st.button("🗑️ Supprimer", key=f"del_client_{row_data['Index']}"):
-                    if delete_row("Users", row_data['Index']):
-                        st.success(f"✅ {row_data['Client']} supprimé")
                         st.rerun()
 
 def show_client_page():
