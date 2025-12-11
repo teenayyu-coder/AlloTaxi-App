@@ -8,7 +8,8 @@
             "Vehicle Brand": "",
             "Vehicle Type": "",
             "Engine Displacement": "",
-            "Is Online": false
+            "Is Online": false,
+            "Login Time": 0
         },
         {
             "Category": "Client",
