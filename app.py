@@ -10,18 +10,18 @@ import time
 import requests
 
 # =======================================================
-#                CONFIGURATION ADMIN HARD-CODÉE
+# CONFIGURATION ADMIN HARD-CODÉE
 # =======================================================
 ADMIN_USERNAME = "admin"
 # Ligne 16: Caractères invisibles nettoyés
 ADMIN_PASSWORD_HASH = hashlib.sha256("adminpass".encode()).hexdigest() # ✅ admin/adminpass
 
 # =======================================================
-#                CONFIGURATION STREAMLIT
+# CONFIGURATION STREAMLIT
 # =======================================================
 st.set_page_config(
   page_title="AlloTaxi", # Ligne 22: Indentation nettoyée
-  layout="wide",        # Ligne 23: Indentation nettoyée
+  layout="wide",     # Ligne 23: Indentation nettoyée
   initial_sidebar_state="collapsed"
 )
 
@@ -47,7 +47,7 @@ def load_css():
 load_css()
 
 # =======================================================
-#                SCHEMAS DES DONNÉES
+# SCHEMAS DES DONNÉES
 # =======================================================
 SHEET_SCHEMAS = {
     "Users": [
@@ -62,7 +62,7 @@ SHEET_SCHEMAS = {
 }
 
 # =======================================================
-#                GESTION DES DONNÉES JSON & PERSISTANCE
+# GESTION DES DONNÉES JSON & PERSISTANCE
 # =======================================================
 INITIAL_DATA = {
     "Users": [
@@ -126,19 +126,26 @@ def load_data():
                 st.session_state.file_sha = content.get("sha")
                 return st.session_state.data_store
             elif r.status_code == 404:
-                st.warning("data.json introuvable. Création initiale...")
+                # Initialisation et première tentative de création sur GitHub
+                st.warning("data.json introuvable sur GitHub. Création initiale...")
                 st.session_state.data_store = deepcopy(INITIAL_DATA)
                 save_data(st.session_state.data_store, initial_create=True)
                 return st.session_state.data_store
+            # Ajout d'une gestion des erreurs plus robuste pour le fallback
+            else:
+                 st.error(f"Erreur HTTP {r.status_code} lors du chargement GitHub. Utilisation du fallback.")
         except:
-            pass
-
+            # En cas d'échec de la requête (réseau, token, etc.), on utilise INITIAL_DATA
+             st.error("Échec de la connexion GitHub. Utilisation du fallback.")
+             pass
+    # Utilisation des données initiales si GitHub non configuré ou échec.
     st.session_state.data_store = deepcopy(INITIAL_DATA)
     return st.session_state.data_store
 
 def save_data(data, initial_create=False):
     st.session_state.data_store = data
     if not github_credentials_available():
+        # Si pas d'identifiants GitHub, on ne fait rien (pas de persistance)
         return
 
     api_url = get_github_api_url()
@@ -160,6 +167,7 @@ def save_data(data, initial_create=False):
         if resp.get("content", {}).get("sha"):
             st.session_state.file_sha = resp["content"]["sha"]
     except:
+        st.error("❌ Échec de la sauvegarde sur GitHub.")
         pass
 
 def fetch_data(sheet_name):
@@ -200,7 +208,7 @@ def delete_row(sheet_name, index_to_delete):
     return False
 
 # =======================================================
-#                FONCTIONS UTILITAIRES
+# FONCTIONS UTILITAIRES
 # =======================================================
 def has_complete_vehicle_info(driver_name):
     df_users = fetch_data("Users")
@@ -328,7 +336,7 @@ def get_base64_image(file):
     return base64.b64encode(bytes_data).decode('utf-8')
     
 # =======================================================
-#                PAGES DE L'APPLICATION
+# PAGES DE L'APPLICATION
 # =======================================================
 def show_login_page():
     try:
@@ -721,7 +729,7 @@ def show_driver_page():
                 st.rerun()
 
 # =======================================================
-#                ROUTING PRINCIPAL
+# ROUTING PRINCIPAL
 # =======================================================
 load_data()
 
@@ -746,4 +754,3 @@ elif st.session_state.logged_in:
 # 3. Page Déconnectée (Connexion)
 else:
     show_login_page()
-
