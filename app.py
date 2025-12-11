@@ -718,12 +718,7 @@ elif st.session_state.logged_in:
 else:
     show_login_page()
 
-# --- BOUCLE DE CHRONOMÈTRE ---
-# ATTENTION : Cette boucle est INDEPENDANTE de la logique de routage ci-dessus.
-# Elle est conditionnelle uniquement à l'état de connexion.
-if st.session_state.get('logged_in', False):
-    time.sleep(1.0)
-    st.rerun()
+
 
 
 
