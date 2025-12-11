@@ -701,8 +701,10 @@ if "logged_in" not in st.session_state:
 if "page" not in st.session_state:
     st.session_state.page = "login"
 
+# 1. Page Enregistrement
 if st.session_state.page == "register":
     show_register_page()
+# 2. Page Connectée (Admin, Client, Driver)
 elif st.session_state.logged_in:
     if st.session_state.user_category == "Admin":
         show_admin_page()
@@ -710,14 +712,15 @@ elif st.session_state.logged_in:
         show_client_page()
     elif st.session_state.user_category == "Driver":
         show_driver_page()
+# 3. Page Déconnectée (Connexion)
 else:
     show_login_page()
 
+# --- BOUCLE DE CHRONOMÈTRE (Gardez-la pour le temps réel) ---
 if st.session_state.get('logged_in', False):
-    
-    # Rafraîchir toutes les secondes (1.0 seconde)
     time.sleep(1.0)
     st.rerun()
+
 
 
 
