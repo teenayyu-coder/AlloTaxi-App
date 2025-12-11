@@ -13,7 +13,7 @@ import requests
 #               CONFIGURATION ADMIN HARD-CODÉE
 # =======================================================
 ADMIN_USERNAME = "admin"
-ADMIN_PASSWORD_HASH = hashlib.sha256("adminpass".encode()).hexdigest()  # ✅ NOUVEAU : admin/adminpass
+ADMIN_PASSWORD_HASH = hashlib.sha256("adminpass".encode()).hexdigest()  # ✅ admin/adminpass
 
 # =======================================================
 #               CONFIGURATION STREAMLIT
@@ -32,7 +32,16 @@ def load_css():
             css = f.read()
         st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
     except FileNotFoundError:
-        st.error("Fichier style.css manquant !")
+        # CSS de fallback si style.css manquant
+        fallback_css = """
+        .trip-card {padding: 15px; border-radius: 12px; background: #f0f4f8; margin-bottom: 15px; border: 1px solid #dcdfe4;}
+        .status-available {color: #28a745; font-weight: bold;}
+        .status-accepted {color: #ffc107; font-weight: bold;}
+        .status-completed {color: #6c757d; font-weight: bold;}
+        .status-cancelled {color: #dc3545; font-weight: bold;}
+        .vehicle-warning {background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 8px; margin: 20px 0;}
+        """
+        st.markdown(f"<style>{fallback_css}</style>", unsafe_allow_html=True)
 
 load_css()
 
@@ -76,17 +85,7 @@ INITIAL_DATA = {
             "Is Online": False
         }
     ],
-    "Trips": [
-        {
-            "Client Name": "testclient",
-            "Client Phone": "032111111",
-            "Start Point": "Antananarivo",
-            "End Point": "Imerina",
-            "Budget": "15000",
-            "Status": "Accepted",
-            "Driver": "testdriver"
-        }
-    ]
+    "Trips": []
 }
 
 DEFAULT_REPO = "teenayyu-coder/AlloTaxi-App"
@@ -124,17 +123,14 @@ def load_data():
                 st.session_state.data_store = deepcopy(INITIAL_DATA)
                 save_data(st.session_state.data_store, initial_create=True)
                 return st.session_state.data_store
-            else:
-                st.error(f"Erreur GitHub (status {r.status_code})")
-        except Exception as e:
-            st.error(f"Exception GitHub : {e}")
+        except:
+            pass
 
     st.session_state.data_store = deepcopy(INITIAL_DATA)
     return st.session_state.data_store
 
 def save_data(data, initial_create=False):
     st.session_state.data_store = data
-
     if not github_credentials_available():
         return
 
@@ -143,12 +139,10 @@ def save_data(data, initial_create=False):
         "Authorization": f"Bearer {st.secrets['GITHUB_TOKEN']}",
         "Content-Type": "application/json"
     }
-
     payload = {
         "message": "Update data.json from Streamlit",
         "content": base64.b64encode(json.dumps(data, indent=4).encode("utf-8")).decode("utf-8")
     }
-
     if not initial_create and st.session_state.get("file_sha"):
         payload["sha"] = st.session_state["file_sha"]
 
@@ -156,12 +150,10 @@ def save_data(data, initial_create=False):
         r = requests.put(api_url, headers=headers, data=json.dumps(payload))
         r.raise_for_status()
         resp = r.json()
-        new_sha = resp.get("content", {}).get("sha")
-        if new_sha:
-            st.session_state.file_sha = new_sha
-        st.success("Données sauvegardées sur GitHub ✔️")
-    except Exception as e:
-        st.error(f"Erreur sauvegarde GitHub : {e}")
+        if resp.get("content", {}).get("sha"):
+            st.session_state.file_sha = resp["content"]["sha"]
+    except:
+        pass
 
 def fetch_data(sheet_name):
     data = load_data()
@@ -187,35 +179,30 @@ def update_row_field(sheet_name, index_to_update, field, new_value):
         return True
     return False
 
-# Fonctions utilitaires (vehicle, online status, etc.)
+# =======================================================
+#               FONCTIONS UTILITAIRES
+# =======================================================
 def has_complete_vehicle_info(driver_name):
     df_users = fetch_data("Users")
     driver_row = df_users[(df_users["First Name"] == driver_name) & (df_users["Category"] == "Driver")]
-    
     if driver_row.empty:
         return False
-    
     vehicle_brand = str(driver_row["Vehicle Brand"].iloc[0] or "").strip()
     vehicle_type = str(driver_row["Vehicle Type"].iloc[0] or "").strip()
     engine_displacement = str(driver_row["Engine Displacement"].iloc[0] or "").strip()
-    
     return bool(vehicle_brand and vehicle_type and engine_displacement)
 
 def get_driver_vehicle_info(driver_name):
     df_users = fetch_data("Users")
     driver_row = df_users[(df_users["First Name"] == driver_name) & (df_users["Category"] == "Driver")]
-    
     if driver_row.empty:
         return "Non renseigné"
-    
     vehicle_brand = str(driver_row["Vehicle Brand"].iloc[0] or "").strip()
     vehicle_type = str(driver_row["Vehicle Type"].iloc[0] or "").strip()
     engine_displacement = str(driver_row["Engine Displacement"].iloc[0] or "").strip()
-    
     if vehicle_brand and vehicle_type and engine_displacement:
         return f"{vehicle_brand} {vehicle_type} ({engine_displacement})"
-    else:
-        return "❌ INCOMPLET - Complétez votre profil"
+    return "❌ INCOMPLET"
 
 def update_user_online_status(user_name, is_online):
     df_users = fetch_data("Users")
@@ -229,29 +216,26 @@ def hash_password(password):
 
 def check_password_strength(password):
     if len(password) < 6:
-        return False, "Le mot de passe doit contenir au moins 6 caractères."
+        return False, "Au moins 6 caractères"
     if not re.search(r"[A-Z]", password):
-        return False, "Le mot de passe doit contenir au moins une majuscule."
+        return False, "Au moins 1 majuscule"
     return True, ""
-
-# Le reste du code reste identique (pages login/register/admin/client/driver)...
-# [Je garde la suite pour éviter un message trop long, mais tout reste identique sauf la fonction load_css()]
 
 def logout_button():
     col1, col2 = st.columns([4, 1])
     with col2:
         if st.button("🚪 Déconnexion"):
-            if st.session_state.user_category in ["Driver", "Admin"]:
+            if st.session_state.get('user_category') in ["Driver", "Admin"]:
                 update_user_online_status(st.session_state.user_name, False)
-            st.session_state.logged_in = False
-            st.session_state.page = "login"
-            st.session_state.user_name = None
-            st.session_state.user_category = None
-            st.session_state.user_phone = None
-            st.session_state.driver_accepted_trip = None
+            for key in ['logged_in', 'page', 'user_name', 'user_category', 'user_phone', 'driver_accepted_trip']:
+                if key in st.session_state:
+                    del st.session_state[key]
             st.success("Déconnexion réussie ✅")
             st.rerun()
 
+# =======================================================
+#               PAGES DE L'APPLICATION
+# =======================================================
 def show_login_page():
     try:
         st.image("allotaxi.ico", width=80)
@@ -259,15 +243,16 @@ def show_login_page():
         pass
     st.title("AlloTaxi")
     st.header("Connexion")
+    
     with st.form("login_form"):
         login_name = st.text_input("Prénom")
         login_pass = st.text_input("Mot de passe", type="password")
         submitted = st.form_submit_button("Se connecter")
-        
+    
     if submitted:
+        # Admin hardcodé
         if login_name == ADMIN_USERNAME:
-            hashed_input = hash_password(login_pass)
-            if hashed_input == ADMIN_PASSWORD_HASH:
+            if hash_password(login_pass) == ADMIN_PASSWORD_HASH:
                 st.session_state.logged_in = True
                 st.session_state.user_name = ADMIN_USERNAME
                 st.session_state.user_category = "Admin"
@@ -275,47 +260,237 @@ def show_login_page():
                 st.success(f"Bienvenue Admin {ADMIN_USERNAME} 👋")
                 st.rerun()
             else:
-                st.error("Mot de passe admin incorrect.")
+                st.error("❌ Mot de passe admin incorrect")
                 return
         
+        # Utilisateurs JSON
         users_df = fetch_data("Users")
         if users_df.empty:
-            st.error("Aucun utilisateur enregistré.")
+            st.error("Aucun utilisateur enregistré")
             return
-
+        
         row = users_df[users_df["First Name"] == login_name]
         if row.empty:
-            st.error("Prénom introuvable.")
+            st.error("❌ Prénom introuvable")
             return
-
-        hashed_input = hash_password(login_pass)
-        stored_hash = row["Password"].iloc[0]
-        if hashed_input != stored_hash:
-            st.error("Mot de passe incorrect.")
+        
+        if hash_password(login_pass) != row["Password"].iloc[0]:
+            st.error("❌ Mot de passe incorrect")
             return
-
-        user_category = row["Category"].iloc[0]
+        
         st.session_state.logged_in = True
         st.session_state.user_name = row["First Name"].iloc[0]
-        st.session_state.user_category = user_category
+        st.session_state.user_category = row["Category"].iloc[0]
         st.session_state.user_phone = row["Phone"].iloc[0]
-
-        if user_category == "Driver":
+        
+        if st.session_state.user_category == "Driver":
             update_user_online_status(st.session_state.user_name, True)
-
-        st.session_state.driver_accepted_trip = None
+        
         st.success(f"Bienvenue {st.session_state.user_name} 👋")
         st.rerun()
-
-    st.markdown("---")
-    if st.button("Créer un compte"):
+    
+    if st.button("➕ Créer un compte"):
         st.session_state.page = "register"
 
-# [Toutes les autres fonctions restent IDENTIQUES : show_register_page(), show_admin_page(), etc.]
-# Pour éviter un message trop long, je ne les recopie pas ici mais elles sont inchangées
+def show_register_page():
+    st.title("✍️ Créer un Compte")
+    with st.form("register_form"):
+        category = st.selectbox("Catégorie", ["Client", "Driver"])
+        first_name = st.text_input("Prénom")
+        phone = st.text_input("Téléphone")
+        password = st.text_input("Mot de passe", type="password")
+        submitted = st.form_submit_button("Créer")
+    
+    if submitted:
+        if first_name.lower() in ['admin', 'taxi']:
+            st.error("Prénom réservé")
+            return
+        
+        ok, msg = check_password_strength(password)
+        if not ok:
+            st.error(msg)
+            return
+        
+        df = fetch_data("Users")
+        if first_name in df["First Name"].values:
+            st.error("Prénom existe déjà")
+            return
+        
+        driver_data = {}
+        if category == "Driver":
+            driver_data = {
+                "Vehicle Brand": "",
+                "Vehicle Type": "",
+                "Engine Displacement": ""
+            }
+        
+        new_user = {
+            "Category": category,
+            "First Name": first_name,
+            "Phone": phone,
+            "Password": hash_password(password),
+            "Vehicle Brand": driver_data.get("Vehicle Brand", ""),
+            "Vehicle Type": driver_data.get("Vehicle Type", ""),
+            "Engine Displacement": driver_data.get("Engine Displacement", ""),
+            "Is Online": False
+        }
+        
+        append_row("Users", new_user)
+        st.success("✅ Compte créé !")
+        st.rerun()
+    
+    if st.button("← Retour"):
+        if "page" in st.session_state:
+            del st.session_state.page
+        st.rerun()
 
-# ROUTING PRINCIPAL (inchangé)
+def show_admin_page():
+    st.title(f"🔧 Admin : {st.session_state.user_name}")
+    logout_button()
+    
+    df_users = fetch_data("Users")
+    df_trips = fetch_data("Trips")
+    
+    drivers = df_users[df_users["Category"] == "Driver"]
+    if drivers.empty:
+        st.info("Aucun driver")
+        return
+    
+    driver_data = []
+    for _, driver in drivers.iterrows():
+        status_online = "🟢 En ligne" if driver['Is Online'] else "🔴 Hors ligne"
+        vehicle_info = get_driver_vehicle_info(driver['First Name'])
+        
+        accepted_trips = df_trips[(df_trips["Status"] == "Accepted") & (df_trips["Driver"] == driver['First Name'])]
+        if not accepted_trips.empty:
+            trip = accepted_trips.iloc[0]
+            course_info = f"{trip['Start Point']} → {trip['End Point']}"
+        else:
+            course_info = "Disponible"
+        
+        driver_data.append({
+            "Driver": driver['First Name'],
+            "Véhicule": vehicle_info,
+            "Connexion": status_online,
+            "Course": course_info
+        })
+    
+    st.dataframe(pd.DataFrame(driver_data), use_container_width=True)
+
+def show_client_page():
+    st.title(f"👤 Client : {st.session_state.user_name}")
+    logout_button()
+    
+    st.header("➕ Nouvelle course")
+    with st.form("new_trip"):
+        start = st.text_input("Départ")
+        end = st.text_input("Arrivée")
+        budget = st.number_input("Budget (Ar)", min_value=1000, value=5000)
+        submitted = st.form_submit_button("Publier")
+    
+    if submitted and start and end:
+        new_trip = {
+            "Client Name": st.session_state.user_name,
+            "Client Phone": st.session_state.user_phone,
+            "Start Point": start,
+            "End Point": end,
+            "Budget": str(int(budget)),
+            "Status": "Available",
+            "Driver": ""
+        }
+        append_row("Trips", new_trip)
+        st.success("✅ Course publiée !")
+        st.rerun()
+    
+    st.header("📋 Mes courses")
+    df_trips = fetch_data("Trips")
+    my_trips = df_trips[df_trips["Client Phone"] == st.session_state.user_phone]
+    
+    if my_trips.empty:
+        st.info("Aucune course")
+        return
+    
+    for idx, row in my_trips.iterrows():
+        status_class = {
+            "Available": "status-available",
+            "Accepted": "status-accepted", 
+            "Completed": "status-completed",
+            "Cancelled": "status-cancelled"
+        }.get(row['Status'], "")
+        
+        st.markdown(f"""
+        <div class="trip-card">
+            <h4>{row['Start Point']} → {row['End Point']}</h4>
+            <p>💰 {row['Budget']} Ar</p>
+            <p><span class="{status_class}">{row['Status']}</span></p>
+            <p>Driver: {row['Driver'] or 'En attente'}</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+def show_driver_page():
+    st.title(f"🚕 Driver : {st.session_state.user_name}")
+    logout_button()
+    
+    vehicle_complete = has_complete_vehicle_info(st.session_state.user_name)
+    vehicle_info = get_driver_vehicle_info(st.session_state.user_name)
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("Véhicule", vehicle_info)
+    with col2:
+        st.metric("Profil", "✅ Complet" if vehicle_complete else "❌ Incomplet")
+    
+    if not vehicle_complete:
+        st.error("⚠️ Complétez votre profil véhicule")
+        return
+    
+    df_trips = fetch_data("Trips")
+    
+    # Course en cours
+    my_accepted = df_trips[(df_trips["Status"] == "Accepted") & (df_trips["Driver"] == st.session_state.user_name)]
+    if not my_accepted.empty:
+        trip = my_accepted.iloc[0]
+        st.warning(f"🚨 Course : {trip['Start Point']} → {trip['End Point']}")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("🏁 Terminer", use_container_width=True):
+                update_row_field("Trips", my_accepted.index[0], "Status", "Completed")
+                st.success("✅ Course terminée")
+                st.rerun()
+        with col2:
+            if st.button("❌ Annuler", use_container_width=True):
+                update_row_field("Trips", my_accepted.index[0], "Status", "Available")
+                update_row_field("Trips", my_accepted.index[0], "Driver", "")
+                st.warning("Course annulée")
+                st.rerun()
+        return
+    
+    # Courses disponibles
+    available = df_trips[df_trips["Status"] == "Available"]
+    st.header(f"📍 Courses disponibles ({len(available)})")
+    
+    for idx, row in available.iterrows():
+        with st.container():
+            st.markdown(f"""
+            <div class="trip-card">
+                <h3>{row['Start Point']} → {row['End Point']}</h3>
+                <p>💰 {row['Budget']} Ar</p>
+                <p>Client: {row['Client Name']} ({row['Client Phone']})</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            if st.button("✅ Accepter", key=f"accept_{idx}"):
+                update_row_field("Trips", idx, "Status", "Accepted")
+                update_row_field("Trips", idx, "Driver", st.session_state.user_name)
+                st.success("✅ Course acceptée !")
+                st.rerun()
+
+# =======================================================
+#               ROUTING PRINCIPAL
+# =======================================================
 load_data()
+
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 if "page" not in st.session_state:
