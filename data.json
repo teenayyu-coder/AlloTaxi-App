@@ -20,6 +20,18 @@
             "Vehicle Type": "",
             "Engine Displacement": "",
             "Is Online": false
+        },
+        {
+            "Category": "Driver",
+            "First Name": "Steve Antonio",
+            "Phone": "0323550778",
+            "Password": "5d2158f60f069dc66243c0a6ca4db250a00391709a90af56446939e5d6495cd6",
+            "Vehicle Brand": "",
+            "Vehicle Type": "",
+            "Engine Displacement": "",
+            "Is Online": false,
+            "Login Time": 0,
+            "Delivery Start Time": 0
         }
     ],
     "Trips": [
