@@ -1,54 +1,172 @@
-/* style.css */
-body {
-    font-family: 'Inter', sans-serif;
+/* style.css amélioré avec effet néon */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+* {
+    box-sizing: border-box;
 }
 
+body {
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+    color: #e0e6ed;
+    min-height: 100vh;
+    padding: 20px;
+    margin: 0;
+}
+
+/* Effet néon pour le header principal */
 .main-header {
     color: #FF4B4B;
     text-align: center;
-    margin-bottom: 20px;
+    margin-bottom: 40px;
+    font-size: 2.5rem;
+    font-weight: 700;
+    text-shadow: 
+        0 0 5px #FF4B4B,
+        0 0 10px #FF4B4B,
+        0 0 20px #FF4B4B,
+        0 0 40px #FF4B4B;
+    animation: neonPulse 2s ease-in-out infinite alternate;
 }
 
+@keyframes neonPulse {
+    from { text-shadow: 0 0 5px #FF4B4B, 0 0 10px #FF4B4B, 0 0 20px #FF4B4B, 0 0 40px #FF4B4B; }
+    to { text-shadow: 0 0 10px #FF4B4B, 0 0 20px #FF4B4B, 0 0 30px #FF4B4B, 0 0 50px #FF4B4B; }
+}
+
+/* Cartes avec effet néon et dégradé */
 .trip-card {
-    padding: 15px;
-    border-radius: 12px;
-    background: #f0f4f8;
-    margin-bottom: 15px;
-    border: 1px solid #dcdfe4;
-    box-shadow: 2px 2px 5px rgba(0,0,0,0.05);
+    padding: 25px;
+    border-radius: 20px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+    margin-bottom: 25px;
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 
+        0 8px 32px rgba(0,0,0,0.3),
+        inset 0 1px 0 rgba(255,255,255,0.2);
+    backdrop-filter: blur(10px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.trip-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+}
+
+.trip-card:hover::before {
+    left: 100%;
+}
+
+.trip-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 
+        0 20px 40px rgba(0,0,0,0.4),
+        0 0 30px rgba(255,75,75,0.3),
+        inset 0 1px 0 rgba(255,255,255,0.3);
+    border-color: rgba(255,75,75,0.4);
 }
 
 .trip-card h3 {
-    color: #333;
-    border-bottom: 2px solid #ddd;
-    padding-bottom: 5px;
+    color: #fff;
+    border-bottom: 2px solid rgba(255,255,255,0.2);
+    padding-bottom: 12px;
     margin-top: 0;
+    margin-bottom: 20px;
+    font-weight: 600;
+    position: relative;
 }
 
+.trip-card h3::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 50px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #FF4B4B, transparent);
+    box-shadow: 0 0 10px #FF4B4B;
+}
+
+/* Statuts avec néon personnalisé */
 .status-available { 
     color: #28a745; 
-    font-weight: bold; 
+    font-weight: 600;
+    text-shadow: 0 0 8px #28a745;
+    animation: glow 1.5s ease-in-out infinite alternate;
 }
 
 .status-accepted { 
     color: #ffc107; 
-    font-weight: bold; 
+    font-weight: 600;
+    text-shadow: 0 0 8px #ffc107;
+    animation: glow 1.5s ease-in-out infinite alternate;
 }
 
 .status-completed { 
     color: #6c757d; 
-    font-weight: bold; 
+    font-weight: 600;
+    text-shadow: 0 0 8px #6c757d;
 }
 
 .status-cancelled { 
     color: #dc3545; 
-    font-weight: bold; 
+    font-weight: 600;
+    text-shadow: 0 0 12px #dc3545;
+    animation: glow 1.5s ease-in-out infinite alternate;
 }
 
+@keyframes glow {
+    from { text-shadow: 0 0 8px currentColor, 0 0 12px currentColor; }
+    to { text-shadow: 0 0 12px currentColor, 0 0 20px currentColor, 0 0 30px currentColor; }
+}
+
+/* Avertissement véhicule avec néon jaune */
 .vehicle-warning { 
-    background: #fff3cd; 
-    border: 1px solid #ffeaa7; 
-    padding: 15px; 
-    border-radius: 8px; 
-    margin: 20px 0;
+    background: linear-gradient(145deg, rgba(255,243,205,0.3) 0%, rgba(255,234,167,0.2) 100%);
+    border: 2px solid rgba(255,234,167,0.5);
+    padding: 20px;
+    border-radius: 16px;
+    margin: 25px 0;
+    backdrop-filter: blur(10px);
+    box-shadow: 
+        0 8px 25px rgba(255,193,7,0.2),
+        inset 0 1px 0 rgba(255,255,255,0.3);
+    position: relative;
+}
+
+.vehicle-warning::before {
+    content: '⚠️';
+    position: absolute;
+    top: -10px;
+    left: 20px;
+    background: #ffc107;
+    color: #333;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    box-shadow: 0 0 15px #ffc107;
+}
+
+/* Améliorations responsive */
+@media (max-width: 768px) {
+    .main-header {
+        font-size: 2rem;
+    }
+    
+    .trip-card {
+        padding: 20px;
+        margin-bottom: 20px;
+    }
 }
