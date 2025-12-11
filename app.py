@@ -10,19 +10,18 @@ import time
 import requests
 
 # =======================================================
-# CONFIGURATION ADMIN HARD-CODÉE
+#               CONFIGURATION ADMIN HARD-CODÉE
 # =======================================================
 ADMIN_USERNAME = "admin"
-# Ligne 16: Caractères invisibles nettoyés
-ADMIN_PASSWORD_HASH = hashlib.sha256("adminpass".encode()).hexdigest() # ✅ admin/adminpass
+ADMIN_PASSWORD_HASH = hashlib.sha256("adminpass".encode()).hexdigest()  # ✅ admin/adminpass
 
 # =======================================================
-# CONFIGURATION STREAMLIT
+#               CONFIGURATION STREAMLIT
 # =======================================================
 st.set_page_config(
-  page_title="AlloTaxi", # Ligne 22: Indentation nettoyée
-  layout="wide",     # Ligne 23: Indentation nettoyée
-  initial_sidebar_state="collapsed"
+    page_title="AlloTaxi",
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
 # Charge le CSS externe
@@ -47,13 +46,13 @@ def load_css():
 load_css()
 
 # =======================================================
-# SCHEMAS DES DONNÉES
+#               SCHEMAS DES DONNÉES
 # =======================================================
 SHEET_SCHEMAS = {
     "Users": [
         "Category", "First Name", "Phone", "Password",
         "Vehicle Brand", "Vehicle Type", "Engine Displacement", "Is Online",
-        "Login Time", "Delivery Start Time", "Profile Photo"
+        "Login Time", "Delivery Start Time"
     ],
     "Trips": [
         "Client Name", "Client Phone", "Start Point",
@@ -62,7 +61,7 @@ SHEET_SCHEMAS = {
 }
 
 # =======================================================
-# GESTION DES DONNÉES JSON & PERSISTANCE
+#               GESTION DES DONNÉES JSON & PERSISTANCE
 # =======================================================
 INITIAL_DATA = {
     "Users": [
@@ -76,8 +75,7 @@ INITIAL_DATA = {
             "Engine Displacement": "",
             "Is Online": False,
             "Login Time": 0,
-            "Delivery Start Time": 0,
-            "Profile Photo": ""
+            "Delivery Start Time": 0
         },
         {
             "Category": "Driver",
@@ -126,26 +124,19 @@ def load_data():
                 st.session_state.file_sha = content.get("sha")
                 return st.session_state.data_store
             elif r.status_code == 404:
-                # Initialisation et première tentative de création sur GitHub
-                st.warning("data.json introuvable sur GitHub. Création initiale...")
+                st.warning("data.json introuvable. Création initiale...")
                 st.session_state.data_store = deepcopy(INITIAL_DATA)
                 save_data(st.session_state.data_store, initial_create=True)
                 return st.session_state.data_store
-            # Ajout d'une gestion des erreurs plus robuste pour le fallback
-            else:
-                 st.error(f"Erreur HTTP {r.status_code} lors du chargement GitHub. Utilisation du fallback.")
         except:
-            # En cas d'échec de la requête (réseau, token, etc.), on utilise INITIAL_DATA
-             st.error("Échec de la connexion GitHub. Utilisation du fallback.")
-             pass
-    # Utilisation des données initiales si GitHub non configuré ou échec.
+            pass
+
     st.session_state.data_store = deepcopy(INITIAL_DATA)
     return st.session_state.data_store
 
 def save_data(data, initial_create=False):
     st.session_state.data_store = data
     if not github_credentials_available():
-        # Si pas d'identifiants GitHub, on ne fait rien (pas de persistance)
         return
 
     api_url = get_github_api_url()
@@ -167,7 +158,6 @@ def save_data(data, initial_create=False):
         if resp.get("content", {}).get("sha"):
             st.session_state.file_sha = resp["content"]["sha"]
     except:
-        st.error("❌ Échec de la sauvegarde sur GitHub.")
         pass
 
 def fetch_data(sheet_name):
@@ -208,7 +198,7 @@ def delete_row(sheet_name, index_to_delete):
     return False
 
 # =======================================================
-# FONCTIONS UTILITAIRES
+#               FONCTIONS UTILITAIRES
 # =======================================================
 def has_complete_vehicle_info(driver_name):
     df_users = fetch_data("Users")
@@ -231,17 +221,6 @@ def get_driver_vehicle_info(driver_name):
     if vehicle_brand and vehicle_type and engine_displacement:
         return f"{vehicle_brand} {vehicle_type} ({engine_displacement})"
     return "❌ INCOMPLET"
-
-def update_driver_vehicle_info(driver_name, brand, vehicle_type, displacement):
-    df_users = fetch_data("Users")
-    driver_row = df_users[(df_users["First Name"] == driver_name) & (df_users["Category"] == "Driver")]
-    if not driver_row.empty:
-        df_index = driver_row.index[0]
-        update_row_field("Users", df_index, "Vehicle Brand", brand)
-        update_row_field("Users", df_index, "Vehicle Type", vehicle_type)
-        update_row_field("Users", df_index, "Engine Displacement", displacement)
-        return True
-    return False
 
 def update_user_online_status(user_name, is_online):
     df_users = fetch_data("Users")
@@ -309,7 +288,7 @@ def hash_password(password):
 
 def check_password_strength(password):
     if len(password) < 6:
-        return False, "Mot de passe : Au moins 6 caractères avec une majuscule et un chiffre"
+        return False, "Au moins 6 caractères"
     if not re.search(r"[A-Z]", password):
         return False, "Au moins 1 majuscule"
     return True, ""
@@ -328,15 +307,8 @@ def logout_button():
             st.success("Déconnexion réussie ✅")
             st.rerun()
 
-def get_base64_image(file):
-    """Convertit un fichier téléchargé en chaîne Base64."""
-    if file is None:
-        return ""
-    bytes_data = file.read()
-    return base64.b64encode(bytes_data).decode('utf-8')
-    
 # =======================================================
-# PAGES DE L'APPLICATION
+#               PAGES DE L'APPLICATION
 # =======================================================
 def show_login_page():
     try:
@@ -364,7 +336,7 @@ def show_login_page():
             else:
                 st.error("❌ Mot de passe admin incorrect")
                 return
-            
+        
         # Utilisateurs JSON
         users_df = fetch_data("Users")
         if users_df.empty:
@@ -393,73 +365,56 @@ def show_login_page():
     
     if st.button("➕ Créer un compte"):
         st.session_state.page = "register"
-        st.rerun()
 
 def show_register_page():
-    st.title("Créer un Compte")
+    st.title("✍️ Créer un Compte")
     with st.form("register_form"):
-        category = st.selectbox("Catégorie", ["Client", "Driver"], key="reg_category")
-        first_name = st.text_input("Prénom", key="reg_name")
-        phone = st.text_input("Téléphone", key="reg_phone")
-        password = st.text_input("Mot de passe", type="password", key="reg_password")
-        profile_photo = None
-        if category == "Client":
-            st.subheader("Photo de Profil (Optionnel)")
-            profile_photo = st.file_uploader("Choisissez une image (PNG/JPG)", type=["png", "jpg", "jpeg"], key="reg_photo")
-        
-        # Ajout des champs véhicule pour les Drivers
-        vehicle_brand = ""
-        vehicle_type = ""
-        engine_displacement = ""
-        
-        if category == "Driver":
-            st.subheader("Informations Véhicule")
-            vehicle_brand = st.text_input("Marque du Véhicule", key="reg_brand")
-            vehicle_type = st.selectbox("Type de Véhicule", ["Voiture", "Moto", "Camionnette"], key="reg_type")
-            engine_displacement = st.text_input("Cylindrée (ex: 1.0L)", key="reg_displacement")
-        
-        submitted = st.form_submit_button("Créer")
-
-    # Traitement de la soumission du formulaire
-    if submitted:
-        if first_name.lower() in ['admin', 'taxi']:
-            st.error("Prénom réservé")
-            return
+        category = st.selectbox("Catégorie", ["Client", "Driver"])
+        first_name = st.text_input("Prénom")
+        phone = st.text_input("Téléphone")
+        password = st.text_input("Mot de passe", type="password")
+        if st.form_submit_button("Créer"):
+            if first_name.lower() in ['admin', 'taxi']:
+                st.error("Prénom réservé")
+                st.rerun()
+                return
             
-        ok, msg = check_password_strength(password)
-        if not ok:
-            st.error(msg)
-            return
+            ok, msg = check_password_strength(password)
+            if not ok:
+                st.error(msg)
+                st.rerun()
+                return
             
-        df = fetch_data("Users")
-        if first_name in df["First Name"].values:
-            st.error("Prénom existe déjà")
-            return
+            df = fetch_data("Users")
+            if first_name in df["First Name"].values:
+                st.error("Prénom existe déjà")
+                st.rerun()
+                return
             
-        # Si la catégorie est Driver, les champs ne doivent pas être vides
-        if category == "Driver" and (not vehicle_brand or not vehicle_type or not engine_displacement):
-            st.error("Veuillez renseigner toutes les informations du véhicule.")
-            return
-
-        # Création du nouvel utilisateur
-        new_user = {
-            "Category": category,
-            "First Name": first_name,
-            "Phone": phone,
-            "Password": hash_password(password),
-            "Vehicle Brand": vehicle_brand,
-            "Vehicle Type": vehicle_type,
-            "Engine Displacement": engine_displacement,
-            "Is Online": False,
-            "Login Time": 0,
-            "Delivery Start Time": 0
-        }
+            driver_data = {}
+            if category == "Driver":
+                driver_data = {
+                    "Vehicle Brand": "",
+                    "Vehicle Type": "",
+                    "Engine Displacement": ""
+                }
             
-        append_row("Users", new_user)
-        st.success("✅ Compte créé ! Vous pouvez maintenant vous connecter.")
-        # Retour à la page de connexion après création réussie
-        st.session_state.page = "login"
-        st.rerun()
+            new_user = {
+                "Category": category,
+                "First Name": first_name,
+                "Phone": phone,
+                "Password": hash_password(password),
+                "Vehicle Brand": driver_data.get("Vehicle Brand", ""),
+                "Vehicle Type": driver_data.get("Vehicle Type", ""),
+                "Engine Displacement": driver_data.get("Engine Displacement", ""),
+                "Is Online": False,
+                "Login Time": 0,
+                "Delivery Start Time": 0
+            }
+            
+            append_row("Users", new_user)
+            st.success("✅ Compte créé !")
+            st.rerun()
     
     if st.button("← Retour"):
         if "page" in st.session_state:
@@ -531,7 +486,6 @@ def show_admin_page():
             
             driver_data.append({
                 "Driver": driver['First Name'],
-                "Téléphone": driver['Phone'],
                 "Véhicule": vehicle_info,
                 "Connexion": status_online,
                 "Course": course_info,
@@ -561,45 +515,28 @@ def show_admin_page():
 def show_client_page():
     st.title(f"👤 Client : {st.session_state.user_name}")
     logout_button()
-    df_users = fetch_data("Users") # <--- Ligne corrigée (décalage vers la gauche)
-    user_row = df_users[df_users["First Name"] == st.session_state.user_name].iloc[0]
-    photo_base64 = user_row.get("Profile Photo", "")
-
-    # Création de deux colonnes : une petite pour la photo, une grande pour le titre
-    col_photo, col_title = st.columns([1, 4])
     
-    with col_photo:
-        # Affichage de la photo de profil ou d'un avatar par défaut
-        if photo_base64:
-            # Créer l'URL d'image Base64
-            image_html = f'<img src="data:image/jpeg;base64,{photo_base64}" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover;">'
-            st.markdown(image_html, unsafe_allow_html=True)
-        else:
-            st.image("allotaxi.ico", width=100) # Utiliser une icône par défaut
-
-    with col_title:    
-        # La suite du code de la page client a été décalée pour être alignée avec le with col_title:
-        st.header("➕ Nouvelle course")
-        with st.form("new_trip"):
-            start = st.text_input("Départ")
-            end = st.text_input("Arrivée")
-            budget = st.number_input("Budget (Ar)", min_value=1000, value=5000)
-            submitted = st.form_submit_button("Publier")
-        
-        if submitted and start and end:
-            new_trip = {
-                "Client Name": st.session_state.user_name,
-                "Client Phone": st.session_state.user_phone,
-                "Start Point": start,
-                "End Point": end,
-                "Budget": str(int(budget)),
-                "Status": "Available",
-                "Driver": ""
-            }
-            append_row("Trips", new_trip)
-            st.success("✅ Course publiée !")
-            st.rerun()
-        
+    st.header("➕ Nouvelle course")
+    with st.form("new_trip"):
+        start = st.text_input("Départ")
+        end = st.text_input("Arrivée")
+        budget = st.number_input("Budget (Ar)", min_value=1000, value=5000)
+        submitted = st.form_submit_button("Publier")
+    
+    if submitted and start and end:
+        new_trip = {
+            "Client Name": st.session_state.user_name,
+            "Client Phone": st.session_state.user_phone,
+            "Start Point": start,
+            "End Point": end,
+            "Budget": str(int(budget)),
+            "Status": "Available",
+            "Driver": ""
+        }
+        append_row("Trips", new_trip)
+        st.success("✅ Course publiée !")
+        st.rerun()
+    
     st.header("📋 Mes courses")
     df_trips = fetch_data("Trips")
     my_trips = df_trips[df_trips["Client Phone"] == st.session_state.user_phone]
@@ -642,45 +579,8 @@ def show_driver_page():
     
     if not vehicle_complete:
         st.error("⚠️ Complétez votre profil véhicule")
-        
-        # FORMULAIRE D'AJOUT/MISE À JOUR DU VÉHICULE
-        with st.form("update_vehicle_form", clear_on_submit=True):
-            st.subheader("Mettre à jour le Véhicule")
-            
-            # Récupérer les infos actuelles pour pré-remplir
-            df_users = fetch_data("Users")
-            driver_row_filter = df_users[(df_users["First Name"] == st.session_state.user_name) & (df_users["Category"] == "Driver")]
-            
-            current_brand = ""
-            current_type = "Voiture"
-            current_displacement = ""
-            
-            if not driver_row_filter.empty:
-                driver_row = driver_row_filter.iloc[0]
-                current_brand = driver_row["Vehicle Brand"] if pd.notna(driver_row["Vehicle Brand"]) else ""
-                current_type = driver_row["Vehicle Type"] if pd.notna(driver_row["Vehicle Type"]) and driver_row["Vehicle Type"] in ["Voiture", "Moto", "Camionnette"] else "Voiture"
-                current_displacement = driver_row["Engine Displacement"] if pd.notna(driver_row["Engine Displacement"]) else ""
-
-            type_options = ["Voiture", "Moto", "Camionnette"]
-            
-            new_brand = st.text_input("Marque du Véhicule", value=current_brand, key="driver_brand")
-            new_type = st.selectbox("Type de Véhicule", type_options, index=type_options.index(current_type), key="driver_type")
-            new_displacement = st.text_input("Cylindrée (ex: 1.0L)", value=current_displacement, key="driver_displacement")
-            
-            vehicle_submitted = st.form_submit_button("Sauvegarder les infos véhicule")
-
-        if vehicle_submitted:
-            if new_brand and new_type and new_displacement:
-                if update_driver_vehicle_info(st.session_state.user_name, new_brand, new_type, new_displacement):
-                    st.success("✅ Informations véhicule mises à jour !")
-                    st.rerun()
-                else:
-                    st.error("❌ Erreur lors de la mise à jour.")
-            else:
-                st.error("Veuillez remplir tous les champs du véhicule.")
-            
         return
-        
+    
     df_trips = fetch_data("Trips")
     
     # Course en cours
@@ -729,7 +629,7 @@ def show_driver_page():
                 st.rerun()
 
 # =======================================================
-# ROUTING PRINCIPAL
+#               ROUTING PRINCIPAL
 # =======================================================
 load_data()
 
@@ -738,12 +638,8 @@ if "logged_in" not in st.session_state:
 if "page" not in st.session_state:
     st.session_state.page = "login"
 
-# --- DEBUT DU ROUTAGE (IF / ELIF / ELSE) ---
-
-# 1. Page Enregistrement
 if st.session_state.page == "register":
     show_register_page()
-# 2. Page Connectée (Admin, Client, Driver)
 elif st.session_state.logged_in:
     if st.session_state.user_category == "Admin":
         show_admin_page()
@@ -751,6 +647,6 @@ elif st.session_state.logged_in:
         show_client_page()
     elif st.session_state.user_category == "Driver":
         show_driver_page()
-# 3. Page Déconnectée (Connexion)
 else:
     show_login_page()
+
