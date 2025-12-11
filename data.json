@@ -41,7 +41,7 @@
             "Vehicle Brand": "test",
             "Vehicle Type": "Moto",
             "Engine Displacement": "test",
-            "Is Online": false,
+            "Is Online": true,
             "Login Time": 1765480198.2130728,
             "Delivery Start Time": 0
         }
