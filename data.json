@@ -11,17 +11,6 @@
             "Is Online": false
         },
         {
-            "Category": "Driver",
-            "First Name": "Steve Antonio",
-            "Phone": "0102030405",
-            "Password": "07480fb9e85b9396af06f006cf1c95024af2531c65fb505cfbd0add1e2f31573",
-            "Vehicle Brand": "Volkswagen",
-            "Vehicle Type": "Voiture",
-            "Engine Displacement": "1L4",
-            "Is Online": true,
-            "Login Time": 1765476425.6168017
-        },
-        {
             "Category": "Client",
             "First Name": "Sitivakely",
             "Phone": "0323550778",
