@@ -39,6 +39,16 @@
             "Vehicle Type": "Moto",
             "Engine Displacement": "125",
             "Is Online": false
+        },
+        {
+            "Category": "Client",
+            "First Name": "Marie",
+            "Phone": "0346755379",
+            "Password": "ba81ec209ffad5004f93227cf2900910677c72a3b6ed86ff3c5834a9b9181df1",
+            "Vehicle Brand": "",
+            "Vehicle Type": "",
+            "Engine Displacement": "",
+            "Is Online": false
         }
     ],
     "Trips": [
