@@ -38,47 +38,9 @@
         {
             "Client Name": "Sitivakely",
             "Client Phone": "0323550778",
-            "Start Point": "Antaninandro",
-            "End Point": "Faravohitra",
-            "Budget": "5000",
-            "Status": "Accepted",
-            "Driver": "Test"
-        },
-        {
-            "Client Name": "Sitivakely",
-            "Client Phone": "0323550778",
             "Start Point": "Faravohitra",
             "End Point": "Ambanidia",
             "Budget": "7000",
             "Status": "Completed",
             "Driver": "Steve Antonio"
         },
-        {
-            "Client Name": "Marie",
-            "Client Phone": "0346755379",
-            "Start Point": "Faravohitra",
-            "End Point": "Ambohipotsy",
-            "Budget": "1000",
-            "Status": "Available",
-            "Driver": ""
-        },
-        {
-            "Client Name": "Marie",
-            "Client Phone": "0346755379",
-            "Start Point": "Faravohitra",
-            "End Point": "Ambohipotsy",
-            "Budget": "50000",
-            "Status": "Available",
-            "Driver": ""
-        },
-        {
-            "Client Name": "Sitivakely",
-            "Client Phone": "0323550778",
-            "Start Point": "Test",
-            "End Point": "test",
-            "Budget": "5000",
-            "Status": "Accepted",
-            "Driver": "test"
-        }
-    ]
-}
