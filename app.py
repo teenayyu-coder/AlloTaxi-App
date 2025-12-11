@@ -25,7 +25,6 @@ st.set_page_config(
 )
 
 # Charge le CSS externe
-@st.cache_data
 def load_css():
     try:
         with open('style.css', 'r') as f:
