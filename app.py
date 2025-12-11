@@ -13,7 +13,7 @@ import requests
 #               CONFIGURATION ADMIN HARD-CODÉE
 # =======================================================
 ADMIN_USERNAME = "admin"
-ADMIN_PASSWORD_HASH = hashlib.sha256("adminpass".encode()).hexdigest()  # ✅ admin/adminpass
+ADMIN_PASSWORD_HASH = hashlib.sha256("adminpass".encode()).hexdigest() # ✅ admin/adminpass
 
 # =======================================================
 #               CONFIGURATION STREAMLIT
@@ -705,3 +705,4 @@ elif st.session_state.logged_in:
         show_driver_page()
 else:
     show_login_page()
+
