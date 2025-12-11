@@ -553,7 +553,23 @@ def show_admin_page():
 def show_client_page():
     st.title(f"👤 Client : {st.session_state.user_name}")
     logout_button()
+      df_users = fetch_data("Users")
+    user_row = df_users[df_users["First Name"] == st.session_state.user_name].iloc[0]
+    photo_base64 = user_row.get("Profile Photo", "")
+
+    # Création de deux colonnes : une petite pour la photo, une grande pour le titre
+    col_photo, col_title = st.columns([1, 4])
     
+    with col_photo:
+        # Affichage de la photo de profil ou d'un avatar par défaut
+        if photo_base64:
+            # Créer l'URL d'image Base64
+            image_html = f'<img src="data:image/jpeg;base64,{photo_base64}" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover;">'
+            st.markdown(image_html, unsafe_allow_html=True)
+        else:
+            st.image("allotaxi.ico", width=100) # Utiliser une icône par défaut
+
+    with col_title:    
     st.header("➕ Nouvelle course")
     with st.form("new_trip"):
         start = st.text_input("Départ")
@@ -729,6 +745,7 @@ elif st.session_state.logged_in:
 # 3. Page Déconnectée (Connexion)
 else:
     show_login_page()
+
 
 
 
