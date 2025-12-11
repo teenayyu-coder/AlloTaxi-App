@@ -20,9 +20,9 @@ ADMIN_PASSWORD_HASH = hashlib.sha256("adminpass".encode()).hexdigest() # ✅ adm
 #                CONFIGURATION STREAMLIT
 # =======================================================
 st.set_page_config(
-    page_title="AlloTaxi", # Ligne 22: Indentation nettoyée
-    layout="wide",        # Ligne 23: Indentation nettoyée
-    initial_sidebar_state="collapsed"
+  page_title="AlloTaxi", # Ligne 22: Indentation nettoyée
+  layout="wide",        # Ligne 23: Indentation nettoyée
+  initial_sidebar_state="collapsed"
 )
 
 # Charge le CSS externe
@@ -746,3 +746,4 @@ elif st.session_state.logged_in:
 # 3. Page Déconnectée (Connexion)
 else:
     show_login_page()
+
