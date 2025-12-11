@@ -53,7 +53,7 @@ SHEET_SCHEMAS = {
     "Users": [
         "Category", "First Name", "Phone", "Password",
         "Vehicle Brand", "Vehicle Type", "Engine Displacement", "Is Online",
-        "Login Time", "Delivery Start Time"
+        "Login Time", "Delivery Start Time", "Profile Photo"
     ],
     "Trips": [
         "Client Name", "Client Phone", "Start Point",
@@ -76,7 +76,8 @@ INITIAL_DATA = {
             "Engine Displacement": "",
             "Is Online": False,
             "Login Time": 0,
-            "Delivery Start Time": 0
+            "Delivery Start Time": 0,
+            "Profile Photo": ""
         },
         {
             "Category": "Driver",
@@ -319,6 +320,13 @@ def logout_button():
             st.success("Déconnexion réussie ✅")
             st.rerun()
 
+def get_base64_image(file):
+    """Convertit un fichier téléchargé en chaîne Base64."""
+    if file is None:
+        return ""
+    bytes_data = file.read()
+    return base64.b64encode(bytes_data).decode('utf-8')
+    
 # =======================================================
 #                PAGES DE L'APPLICATION
 # =======================================================
@@ -386,6 +394,10 @@ def show_register_page():
         first_name = st.text_input("Prénom", key="reg_name")
         phone = st.text_input("Téléphone", key="reg_phone")
         password = st.text_input("Mot de passe", type="password", key="reg_password")
+        profile_photo = None
+        if category == "Client":
+            st.subheader("Photo de Profil (Optionnel)")
+            profile_photo = st.file_uploader("Choisissez une image (PNG/JPG)", type=["png", "jpg", "jpeg"], key="reg_photo")
         
         # Ajout des champs véhicule pour les Drivers
         vehicle_brand = ""
@@ -717,6 +729,7 @@ elif st.session_state.logged_in:
 # 3. Page Déconnectée (Connexion)
 else:
     show_login_page()
+
 
 
 
