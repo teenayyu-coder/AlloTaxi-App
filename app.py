@@ -701,6 +701,8 @@ if "logged_in" not in st.session_state:
 if "page" not in st.session_state:
     st.session_state.page = "login"
 
+# --- DEBUT DU ROUTAGE (IF / ELIF / ELSE) ---
+
 # 1. Page Enregistrement
 if st.session_state.page == "register":
     show_register_page()
@@ -716,10 +718,13 @@ elif st.session_state.logged_in:
 else:
     show_login_page()
 
-# --- BOUCLE DE CHRONOMÈTRE (Gardez-la pour le temps réel) ---
+# --- BOUCLE DE CHRONOMÈTRE ---
+# ATTENTION : Cette boucle est INDEPENDANTE de la logique de routage ci-dessus.
+# Elle est conditionnelle uniquement à l'état de connexion.
 if st.session_state.get('logged_in', False):
     time.sleep(1.0)
     st.rerun()
+
 
 
 
