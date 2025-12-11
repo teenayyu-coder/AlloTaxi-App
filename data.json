@@ -29,7 +29,7 @@
             "Vehicle Brand": "",
             "Vehicle Type": "",
             "Engine Displacement": "",
-            "Is Online": true,
+            "Is Online": false,
             "Login Time": 0,
             "Delivery Start Time": 0
         }
