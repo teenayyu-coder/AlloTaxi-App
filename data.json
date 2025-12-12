@@ -58,6 +58,15 @@
             "Budget": "7000",
             "Status": "Completed",
             "Driver": "Steve Antonio"
+        },
+        {
+            "Client Name": "John",
+            "Client Phone": "0102",
+            "Start Point": "Anjohy",
+            "End Point": "Faravohitra",
+            "Budget": "15000",
+            "Status": "Available",
+            "Driver": ""
         }
     ]
 }
