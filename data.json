@@ -47,18 +47,6 @@
             "Is Online": false,
             "Login Time": 0,
             "Delivery Start Time": 0
-        },
-        {
-            "Category": "Driver",
-            "First Name": "Greg",
-            "Phone": "0105",
-            "Password": "07480fb9e85b9396af06f006cf1c95024af2531c65fb505cfbd0add1e2f31573",
-            "Vehicle Brand": "Cygnus",
-            "Vehicle Type": "Moto",
-            "Engine Displacement": "125",
-            "Is Online": false,
-            "Login Time": 0,
-            "Delivery Start Time": 0
         }
     ],
     "Trips": [
