@@ -19,7 +19,7 @@ ADMIN_PASSWORD_HASH = hashlib.sha256("adminpass".encode()).hexdigest()  # ✅ ad
 #               CONFIGURATION STREAMLIT
 # =======================================================
 st.set_page_config(
-    page_title="AlloTaxi",
+    page_title="AlloTaxitana",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -315,7 +315,7 @@ def show_login_page():
         st.image("allotaxi.ico", width=80)
     except:
         pass
-    st.title("AlloTaxi")
+    st.image("allotaxitana.ico", width=120)
     st.header("Connexion")
     
     with st.form("login_form"):
@@ -368,7 +368,7 @@ def show_login_page():
         st.rerun()
 
 def show_register_page():
-    st.title("✍️ Créer un Compte")
+    st.title("Créer un Compte")
     with st.form("register_form"):
         category = st.selectbox("Catégorie", ["Client", "Driver"])
         first_name = st.text_input("Prénom")
@@ -423,7 +423,7 @@ def show_register_page():
         st.rerun()
 
 def show_admin_page():
-    st.title(f"🔧 Admin : {st.session_state.user_name}")
+    st.title(f"Admin : {st.session_state.user_name}")
     logout_button()
     
     df_users = fetch_data("Users")
@@ -514,7 +514,7 @@ def show_admin_page():
                         st.rerun()
 
 def show_client_page():
-    st.title(f"👤 Client : {st.session_state.user_name}")
+    st.title(f"Client : {st.session_state.user_name}")
     logout_button()
     
     st.header("➕ Nouvelle course")
@@ -564,7 +564,7 @@ def show_client_page():
         """, unsafe_allow_html=True)
 
 def show_driver_page():
-    st.title(f"🚕 Driver : {st.session_state.user_name}")
+    st.title(f"Driver : {st.session_state.user_name}")
     logout_button()
     
     vehicle_complete = has_complete_vehicle_info(st.session_state.user_name)
@@ -650,6 +650,7 @@ elif st.session_state.logged_in:
         show_driver_page()
 else:
     show_login_page()
+
 
 
 
