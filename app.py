@@ -312,10 +312,10 @@ def logout_button():
 # =======================================================
 def show_login_page():
     try:
-        st.image("allotaxi.ico", width=80)
+        st.image("allotaxi.ico", width=200)
     except:
         pass
-    st.image("allotaxitana.ico", width=120)
+    st.image("allotaxitana.ico", width=300)
     st.header("Connexion")
     
     with st.form("login_form"):
@@ -650,6 +650,7 @@ elif st.session_state.logged_in:
         show_driver_page()
 else:
     show_login_page()
+
 
 
 
