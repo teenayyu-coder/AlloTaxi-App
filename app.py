@@ -49,7 +49,7 @@ load_css()
 #       BANNIÈRE HAUT DE PAGE
 # ============================
 def show_banner():
-    gif_url = "https://raw.githubusercontent.com/teenayyu-coder/AlloTaxi-App/main/gig.gif"
+    gif_url = "https://raw.githubusercontent.com/teenayyu-coder/AlloTaxi-App/main/gif.gif"
     st.markdown(
         f"""
         <div style="display:flex; justify-content:center; margin-bottom:20px;">
@@ -664,6 +664,7 @@ elif st.session_state.logged_in:
         show_driver_page()
 else:
     show_login_page()
+
 
 
 
