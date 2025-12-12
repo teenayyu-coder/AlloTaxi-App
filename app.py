@@ -509,6 +509,7 @@ def show_admin_page():
             
             driver_data.append({
                 "Driver": driver['First Name'],
+                "Téléphone": driver['Phone'],
                 "Véhicule": vehicle_info,
                 "Connexion": status_online,
                 "Course": course_info,
@@ -672,6 +673,7 @@ elif st.session_state.logged_in:
         show_driver_page()
 else:
     show_login_page()
+
 
 
 
