@@ -586,6 +586,13 @@ def show_client_page():
         </div>
         """, unsafe_allow_html=True)
 
+        if row['Status'] in ["Available", "Accepted"]:
+            if st.button("Annuler la course", key=f"cancel_{idx}"):
+                update_row_field("Trips", idx, "Status", "Cancelled")
+                update_row_field("Trips", idx, "Driver", "")
+                st.warning("Course annulée")
+                st.rerun(
+
 def show_driver_page():
     st.title(f"Driver : {st.session_state.user_name}")
     logout_button()
@@ -673,6 +680,7 @@ elif st.session_state.logged_in:
         show_driver_page()
 else:
     show_login_page()
+
 
 
 
