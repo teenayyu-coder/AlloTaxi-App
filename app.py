@@ -311,11 +311,14 @@ def logout_button():
 #               PAGES DE L'APPLICATION
 # =======================================================
 def show_login_page():
-    try:
-        st.image("allotaxi.ico", width=200)
-    except:
-        pass
-    st.image("allotaxitana.ico", width=300)
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        try:
+            st.image("allotaxi.ico", width=200)
+        except:
+            pass
+        st.image("allotaxitana.ico", width=300)
+        
     st.header("Connexion")
     
     with st.form("login_form"):
@@ -650,6 +653,7 @@ elif st.session_state.logged_in:
         show_driver_page()
 else:
     show_login_page()
+
 
 
 
