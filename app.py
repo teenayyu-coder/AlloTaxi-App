@@ -365,6 +365,7 @@ def show_login_page():
     
     if st.button("➕ Créer un compte"):
         st.session_state.page = "register"
+        st.rerun()
 
 def show_register_page():
     st.title("✍️ Créer un Compte")
@@ -649,4 +650,5 @@ elif st.session_state.logged_in:
         show_driver_page()
 else:
     show_login_page()
+
 
