@@ -319,7 +319,6 @@ def show_login_page():
     
     if st.session_state.get("account_created"):
         st.success("Bienvenue chez Allo Taxi Tanà ! Votre compte a été créé avec succès.")
-        st.markdown("👉 **[Cliquez ici pour vous connecter](#connexion)**")
         st.session_state.account_created = False
     
     with st.form("login_form"):
@@ -673,6 +672,7 @@ elif st.session_state.logged_in:
         show_driver_page()
 else:
     show_login_page()
+
 
 
 
