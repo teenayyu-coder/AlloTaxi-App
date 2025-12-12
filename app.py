@@ -45,6 +45,22 @@ def load_css():
 
 load_css()
 
+# ============================
+#       BANNIÈRE HAUT DE PAGE
+# ============================
+def show_banner():
+    st.markdown(
+        """
+        <div style="display:flex; justify-content:center; margin-bottom:20px;">
+            <img src="gif.gif" style="width:100%; max-width:900px; border-radius:12px;" />
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+# Afficher la bannière avant tout le reste
+show_banner()
+
 # =======================================================
 #               SCHEMAS DES DONNÉES
 # =======================================================
@@ -650,6 +666,7 @@ elif st.session_state.logged_in:
         show_driver_page()
 else:
     show_login_page()
+
 
 
 
