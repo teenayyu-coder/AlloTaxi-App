@@ -56,7 +56,7 @@
             "Vehicle Brand": "Yamaha",
             "Vehicle Type": "Moto",
             "Engine Displacement": "125",
-            "Is Online": true,
+            "Is Online": false,
             "Login Time": 0,
             "Delivery Start Time": 0
         }
