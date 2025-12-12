@@ -591,7 +591,7 @@ def show_client_page():
                 update_row_field("Trips", idx, "Status", "Cancelled")
                 update_row_field("Trips", idx, "Driver", "")
                 st.warning("Course annulée")
-                st.rerun(
+                st.rerun()
 
 def show_driver_page():
     st.title(f"Driver : {st.session_state.user_name}")
@@ -680,6 +680,7 @@ elif st.session_state.logged_in:
         show_driver_page()
 else:
     show_login_page()
+
 
 
 
