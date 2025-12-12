@@ -296,7 +296,7 @@ def check_password_strength(password):
 def logout_button():
     col1, col2 = st.columns([4, 1])
     with col2:
-        if st.button("🚪 Déconnexion"):
+        if st.button("Déconnexion"):
             if st.session_state.get('user_category') in ["Driver", "Admin"]:
                 update_user_online_status(st.session_state.user_name, False)
             for key in ['logged_in', 'page', 'user_name', 'user_category', 'user_phone', 'driver_accepted_trip']:
@@ -650,5 +650,6 @@ elif st.session_state.logged_in:
         show_driver_page()
 else:
     show_login_page()
+
 
 
