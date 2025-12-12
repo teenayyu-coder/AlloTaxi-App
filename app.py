@@ -44,21 +44,6 @@ def load_css():
         st.markdown(f"<style>{fallback_css}</style>", unsafe_allow_html=True)
 
 load_css()
-
-# ============================
-#       BANNIÈRE HAUT DE PAGE
-# ============================
-def show_banner():
-    gif_url = "https://raw.githubusercontent.com/teenayyu-coder/AlloTaxi-App/main/gif.gif"
-    st.markdown(
-        f"""
-        <div style="display:flex; justify-content:center; margin-bottom:20px;">
-            <img src="{gif_url}" style="width:100%; max-width:900px; border-radius:12px;" />
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
 # =======================================================
 #               SCHEMAS DES DONNÉES
 # =======================================================
@@ -664,6 +649,7 @@ elif st.session_state.logged_in:
         show_driver_page()
 else:
     show_login_page()
+
 
 
 
