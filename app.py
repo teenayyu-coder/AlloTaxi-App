@@ -368,65 +368,75 @@ def show_login_page():
 
 def show_register_page():
     st.title("Créer un Compte")
+
+    # ---- FORMULAIRE ----
     with st.form("register_form"):
         category = st.selectbox("Catégorie", ["Client", "Driver"])
         first_name = st.text_input("Prénom")
         phone = st.text_input("Téléphone")
         password = st.text_input("Mot de passe", type="password")
-        if st.form_submit_button("Créer"):
-            if first_name.lower() in ['admin', 'taxi']:
-                st.error("Prénom réservé")
-                st.rerun()
-                return
-            
-            ok, msg = check_password_strength(password)
-            if not ok:
-                st.error(msg)
-                st.rerun()
-                return
-            
-            df = fetch_data("Users")
-            if first_name in df["First Name"].values:
-                st.error("Prénom existe déjà")
-                st.rerun()
-                return
-            
-    driver_data = {}
-    if category == "Driver":
-        st.subheader("Informations sur le véhicule")
-        vehicle_brand = st.text_input("Marque du véhicule (ex : Toyota)")
-        vehicle_type = st.text_input("Type de véhicule (ex : Voiture, Scooter)")
-        engine_displacement = st.text_input("Cylindrée (ex : 1.0L, 125cc)")
 
-    driver_data = {
-        "Vehicle Brand": vehicle_brand,
-        "Vehicle Type": vehicle_type,
-        "Engine Displacement": engine_displacement
-    }
+        # Champs véhicule UNIQUEMENT si driver
+        vehicle_brand = ""
+        vehicle_type = ""
+        engine_displacement = ""
 
-            
-            new_user = {
-                "Category": category,
-                "First Name": first_name,
-                "Phone": phone,
-                "Password": hash_password(password),
-                "Vehicle Brand": driver_data.get("Vehicle Brand", ""),
-                "Vehicle Type": driver_data.get("Vehicle Type", ""),
-                "Engine Displacement": driver_data.get("Engine Displacement", ""),
-                "Is Online": False,
-                "Login Time": 0,
-                "Delivery Start Time": 0
-            }
-            
-            append_row("Users", new_user)
-            st.success("✅ Compte créé !")
+        if category == "Driver":
+            st.subheader("Informations sur le véhicule")
+            vehicle_brand = st.text_input("Marque du véhicule (ex : Toyota)")
+            vehicle_type = st.text_input("Type de véhicule (Voiture, Scooter...)")
+            engine_displacement = st.text_input("Cylindrée (1.0L, 125cc...)")
+
+        submitted = st.form_submit_button("Créer")
+
+    # ---- TRAITEMENT DU FORM ----
+    if submitted:
+        if first_name.lower() in ['admin', 'taxi']:
+            st.error("Prénom réservé")
             st.rerun()
-    
-    if st.button("← Retour"):
-        if "page" in st.session_state:
-            del st.session_state.page
+            return
+
+        ok, msg = check_password_strength(password)
+        if not ok:
+            st.error(msg)
+            st.rerun()
+            return
+
+        df = fetch_data("Users")
+        if first_name in df["First Name"].values:
+            st.error("Prénom déjà utilisé")
+            st.rerun()
+            return
+
+        # Driver: Vérification véhicule
+        if category == "Driver":
+            if not vehicle_brand or not vehicle_type or not engine_displacement:
+                st.error("Veuillez compléter toutes les informations véhicule")
+                st.stop()
+
+        # Création du compte
+        new_user = {
+            "Category": category,
+            "First Name": first_name,
+            "Phone": phone,
+            "Password": hash_password(password),
+            "Vehicle Brand": vehicle_brand,
+            "Vehicle Type": vehicle_type,
+            "Engine Displacement": engine_displacement,
+            "Is Online": False,
+            "Login Time": 0,
+            "Delivery Start Time": 0
+        }
+
+        append_row("Users", new_user)
+        st.success("Compte créé avec succès")
         st.rerun()
 
+    # ---- Retour ----
+    if st.button("← Retour"):
+        st.session_state.page = "login"
+        st.rerun()
+        
 def show_admin_page():
     st.title(f"Admin : {st.session_state.user_name}")
     logout_button()
@@ -655,6 +665,7 @@ elif st.session_state.logged_in:
         show_driver_page()
 else:
     show_login_page()
+
 
 
 
