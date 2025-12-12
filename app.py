@@ -317,6 +317,11 @@ def show_login_page():
     st.image("allotaxitana.ico", width=300)
     st.header("Connexion")
     
+    if st.session_state.get("account_created"):
+        st.success("Bienvenue chez Allo Taxi Tanà ! Votre compte a été créé avec succès.")
+        st.markdown("👉 **[Cliquez ici pour vous connecter](#connexion)**")
+        st.session_state.account_created = False
+    
     with st.form("login_form"):
         login_name = st.text_input("Prénom")
         login_pass = st.text_input("Mot de passe", type="password")
@@ -429,7 +434,10 @@ def show_register_page():
         }
 
         append_row("Users", new_user)
-        st.success("Compte créé avec succès")
+        
+        st.session_state.account_created = True
+        st.session_state.page = "login"
+        
         st.rerun()
 
     # ---- Retour ----
@@ -665,6 +673,7 @@ elif st.session_state.logged_in:
         show_driver_page()
 else:
     show_login_page()
+
 
 
 
