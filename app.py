@@ -391,12 +391,12 @@ def show_register_page():
                 st.rerun()
                 return
             
-            driver_data = {}
-            if category == "Driver":
-                st.subheader("Informations sur le véhicule")
-                vehicle_brand = st.text_input("Marque du véhicule (ex : Toyota)")
-                vehicle_type = st.text_input("Type de véhicule (ex : Voiture, Scooter)")
-                engine_displacement = st.text_input("Cylindrée (ex : 1.0L, 125cc)")
+    driver_data = {}
+    if category == "Driver":
+        st.subheader("Informations sur le véhicule")
+        vehicle_brand = st.text_input("Marque du véhicule (ex : Toyota)")
+        vehicle_type = st.text_input("Type de véhicule (ex : Voiture, Scooter)")
+        engine_displacement = st.text_input("Cylindrée (ex : 1.0L, 125cc)")
 
     driver_data = {
         "Vehicle Brand": vehicle_brand,
