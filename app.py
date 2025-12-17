@@ -56,7 +56,8 @@ SHEET_SCHEMAS = {
     "Trips": [
         "Client Name", "Client Phone", "Start Point",
         "End Point", "Budget", "Status", "Driver"
-    ]
+    ],
+    "Notifications": ["Target", "Message", "TripIndex", "Read", "Timestamp"]
 }
 
 # =======================================================
@@ -89,7 +90,8 @@ INITIAL_DATA = {
             "Delivery Start Time": 0
         }
     ],
-    "Trips": []
+    "Trips": [],
+    "Notifications": []
 }
 
 DEFAULT_REPO = "teenayyu-coder/AlloTaxi-App"
@@ -199,6 +201,26 @@ def delete_row(sheet_name, index_to_delete):
 # =======================================================
 #               FONCTIONS UTILITAIRES
 # =======================================================
+# ----------- NOTIFICATIONS -----------
+def add_notification(target, message, trip_index):
+    notif = {
+        "Target": target,        # "Admin" ou nom du driver
+        "Message": message,
+        "TripIndex": trip_index,
+        "Read": False,
+        "Timestamp": time.time()
+    }
+    append_row("Notifications", notif)
+
+
+def get_unread_notifications(target):
+    df = fetch_data("Notifications")
+    return df[(df["Target"] == target) & (df["Read"] == False)]
+
+
+def mark_notification_read(index):
+    update_row_field("Notifications", index, "Read", True)
+
 def has_complete_vehicle_info(driver_name):
     df_users = fetch_data("Users")
     driver_row = df_users[(df_users["First Name"] == driver_name) & (df_users["Category"] == "Driver")]
@@ -447,6 +469,25 @@ def show_register_page():
 def show_admin_page():
     st.title(f"Admin : {st.session_state.user_name}")
     logout_button()
+
+    # --- SECTION NOTIFICATIONS ---
+    st.subheader("🔔 Notifications")
+    notifs = get_unread_notifications("Admin")
+    
+    if not notifs.empty:
+        for idx, notif in notifs.iterrows():
+            # On utilise des colonnes pour aligner le message et le bouton
+            col_msg, col_btn = st.columns([4, 1])
+            with col_msg:
+                st.warning(notif["Message"])
+            with col_btn:
+                if st.button("Marquer comme lu", key=f"admin_notif_{idx}"):
+                    mark_notification_read(idx)
+                    st.rerun()
+    else:
+        st.info("Aucune nouvelle notification")
+    
+    st.markdown("---") # Séparateur visuel
     
     df_users = fetch_data("Users")
     df_trips = fetch_data("Trips")
@@ -588,12 +629,39 @@ def show_client_page():
 
         if row['Status'] in ["Available", "Accepted"]:
             if st.button("Annuler la course", key=f"cancel_{idx}"):
+                driver_name = row["Driver"]
                 update_row_field("Trips", idx, "Status", "Cancelled")
                 update_row_field("Trips", idx, "Driver", "")
+                
+                # Notification pour l'Admin
+                add_notification(
+                    target="Admin",
+                    message=f"🚨 Le client {row['Client Name']} a annulé la course {row['Start Point']} → {row['End Point']}",
+                    trip_index=idx
+                )
+                
+                # Notification pour le Driver (seulement s'il y en avait un)
+                if driver_name:
+                    add_notification(
+                        target=driver_name,
+                        message=f"❌ Le client a annulé la course {row['Start Point']} → {row['End Point']}",
+                        trip_index=idx
+                    )
+                
+                # Ces messages et le refresh doivent être DANS le bloc du bouton
                 st.warning("Course annulée")
                 st.rerun()
-
+            
 def show_driver_page():
+    st.subheader("🔔 Notifications")
+    notifs = get_unread_notifications(st.session_state.user_name)
+    if not notifs.empty:
+        for idx, notif in notifs.iterrows():
+            st.error(notif["Message"])
+            if st.button("OK", key=f"driver_notif_{idx}"):
+                mark_notification_read(idx)
+                st.rerun()
+
     st.title(f"Driver : {st.session_state.user_name}")
     logout_button()
     
@@ -680,6 +748,7 @@ elif st.session_state.logged_in:
         show_driver_page()
 else:
     show_login_page()
+
 
 
 
