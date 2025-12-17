@@ -67,3 +67,21 @@
         }
     ]
 }
+
+  "Notifications": [
+    {
+      "Target": "Admin",
+      "Message": "🚨 Le client Sitivakely a annulé la course Faravohitra → Ambanidia",
+      "TripIndex": 0,
+      "Read": false,
+      "Timestamp": 1765562000
+    },
+    {
+      "Target": "Steve Antonio",
+      "Message": "❌ Le client Sitivakely a annulé la course Faravohitra → Ambanidia",
+      "TripIndex": 0,
+      "Read": false,
+      "Timestamp": 1765562001
+    }
+  ]
+}
