@@ -1,87 +1,85 @@
 {
-  "Users": [
-    {
-      "Category": "Admin",
-      "First Name": "admin",
-      "Phone": "000000000",
-      "Password": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "Vehicle Brand": "",
-      "Vehicle Type": "",
-      "Engine Displacement": "",
-      "Is Online": false,
-      "Login Time": 0,
-      "Delivery Start Time": 0
-    },
-    {
-      "Category": "Client",
-      "First Name": "Sitivakely",
-      "Phone": "0323550778",
-      "Password": "07480fb9e85b9396af06f006cf1c95024af2531c65fb505cfbd0add1e2f31573",
-      "Vehicle Brand": "",
-      "Vehicle Type": "",
-      "Engine Displacement": "",
-      "Is Online": false,
-      "Login Time": 0,
-      "Delivery Start Time": 0
-    },
-    {
-      "Category": "Driver",
-      "First Name": "Steve Antonio",
-      "Phone": "0323550778",
-      "Password": "5d2158f60f069dc66243c0a6ca4db250a00391709a90af56446939e5d6495cd6",
-      "Vehicle Brand": "Test",
-      "Vehicle Type": "test",
-      "Engine Displacement": "test",
-      "Is Online": false,
-      "Login Time": 0,
-      "Delivery Start Time": 1765560715.2878952
-    }
-  ],
-
-  "Trips": [
-    {
-      "Client Name": "Sitivakely",
-      "Client Phone": "0323550778",
-      "Start Point": "Faravohitra",
-      "End Point": "Ambanidia",
-      "Budget": "7000",
-      "Status": "Completed",
-      "Driver": "Steve Antonio"
-    },
-    {
-      "Client Name": "John",
-      "Client Phone": "0102",
-      "Start Point": "Anjohy",
-      "End Point": "Faravohitra",
-      "Budget": "15000",
-      "Status": "Cancelled",
-      "Driver": ""
-    },
-    {
-      "Client Name": "John",
-      "Client Phone": "0102",
-      "Start Point": "Test",
-      "End Point": "test",
-      "Budget": "5000",
-      "Status": "Cancelled",
-      "Driver": ""
-    }
-  ],
-
-  "Notifications": [
-    {
-      "Target": "Admin",
-      "Message": "🚨 Le client Sitivakely a annulé la course Faravohitra → Ambanidia",
-      "TripIndex": 0,
-      "Read": false,
-      "Timestamp": 1765562000
-    },
-    {
-      "Target": "Steve Antonio",
-      "Message": "❌ Le client Sitivakely a annulé la course Faravohitra → Ambanidia",
-      "TripIndex": 0,
-      "Read": false,
-      "Timestamp": 1765562001
-    }
-  ]
+    "Users": [
+        {
+            "Category": "Admin",
+            "First Name": "admin",
+            "Phone": "000000000",
+            "Password": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "Vehicle Brand": "",
+            "Vehicle Type": "",
+            "Engine Displacement": "",
+            "Is Online": false,
+            "Login Time": 0,
+            "Delivery Start Time": 0
+        },
+        {
+            "Category": "Client",
+            "First Name": "Sitivakely",
+            "Phone": "0323550778",
+            "Password": "07480fb9e85b9396af06f006cf1c95024af2531c65fb505cfbd0add1e2f31573",
+            "Vehicle Brand": "",
+            "Vehicle Type": "",
+            "Engine Displacement": "",
+            "Is Online": false,
+            "Login Time": 0,
+            "Delivery Start Time": 0
+        },
+        {
+            "Category": "Driver",
+            "First Name": "Steve Antonio",
+            "Phone": "0323550778",
+            "Password": "5d2158f60f069dc66243c0a6ca4db250a00391709a90af56446939e5d6495cd6",
+            "Vehicle Brand": "Test",
+            "Vehicle Type": "test",
+            "Engine Displacement": "test",
+            "Is Online": false,
+            "Login Time": 0,
+            "Delivery Start Time": 1765560715.2878952
+        }
+    ],
+    "Trips": [
+        {
+            "Client Name": "Sitivakely",
+            "Client Phone": "0323550778",
+            "Start Point": "Faravohitra",
+            "End Point": "Ambanidia",
+            "Budget": "7000",
+            "Status": "Completed",
+            "Driver": "Steve Antonio"
+        },
+        {
+            "Client Name": "John",
+            "Client Phone": "0102",
+            "Start Point": "Anjohy",
+            "End Point": "Faravohitra",
+            "Budget": "15000",
+            "Status": "Cancelled",
+            "Driver": ""
+        },
+        {
+            "Client Name": "John",
+            "Client Phone": "0102",
+            "Start Point": "Test",
+            "End Point": "test",
+            "Budget": "5000",
+            "Status": "Cancelled",
+            "Driver": ""
+        }
+    ],
+    "Notifications": [
+        {
+            "Target": "Admin",
+            "Message": "\ud83d\udea8 Le client Sitivakely a annul\u00e9 la course Faravohitra \u2192 Ambanidia",
+            "TripIndex": 0,
+            "Read": true,
+            "Timestamp": 1765562000
+        },
+        {
+            "Target": "Steve Antonio",
+            "Message": "\u274c Le client Sitivakely a annul\u00e9 la course Faravohitra \u2192 Ambanidia",
+            "TripIndex": 0,
+            "Read": false,
+            "Timestamp": 1765562001
+        }
+    ]
 }
