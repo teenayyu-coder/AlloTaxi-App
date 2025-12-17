@@ -78,7 +78,7 @@
             "Target": "Steve Antonio",
             "Message": "\u274c Le client Sitivakely a annul\u00e9 la course Faravohitra \u2192 Ambanidia",
             "TripIndex": 0,
-            "Read": false,
+            "Read": true,
             "Timestamp": 1765562001
         }
     ]
