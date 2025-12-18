@@ -1,4 +1,3 @@
-# app.py
 import streamlit as st
 import pandas as pd
 import hashlib
@@ -109,8 +108,9 @@ def get_github_api_url():
         filename = DEFAULT_FILE
     return f"https://api.github.com/repos/{repo}/contents/{filename}"
 
-def load_data():
-    if "data_store" in st.session_state:
+def load_data(force_refresh=False):
+    """🔥 MODIFIÉ : force_refresh pour recharger depuis GitHub"""
+    if "data_store" in st.session_state and not force_refresh:
         return st.session_state.data_store
 
     if github_credentials_available():
@@ -161,8 +161,8 @@ def save_data(data, initial_create=False):
     except:
         pass
 
-st.cache_data(ttl=1)
 def fetch_data(sheet_name):
+    """🔥 MODIFIÉ : SANS CACHE, direct session_state"""
     if "data_store" not in st.session_state:
         load_data()
     data = st.session_state.data_store
@@ -179,14 +179,16 @@ def fetch_data(sheet_name):
     return df
 
 def append_row(sheet_name, new_row_dict):
-    data = load_data()
+    """🔥 MODIFIÉ : force_refresh après save"""
+    data = load_data(force_refresh=True)
     if sheet_name not in data:
         data[sheet_name] = []
     data[sheet_name].append(new_row_dict)
     save_data(data)
 
 def update_row_field(sheet_name, index_to_update, field, new_value):
-    data = load_data()
+    """🔥 MODIFIÉ : force_refresh après save"""
+    data = load_data(force_refresh=True)
     if sheet_name in data and 0 <= index_to_update < len(data[sheet_name]):
         data[sheet_name][index_to_update][field] = new_value
         save_data(data)
@@ -194,7 +196,8 @@ def update_row_field(sheet_name, index_to_update, field, new_value):
     return False
 
 def delete_row(sheet_name, index_to_delete):
-    data = load_data()
+    """🔥 MODIFIÉ : force_refresh après save"""
+    data = load_data(force_refresh=True)
     if sheet_name in data and 0 <= index_to_delete < len(data[sheet_name]):
         del data[sheet_name][index_to_delete]
         save_data(data)
@@ -470,10 +473,12 @@ def show_register_page():
         st.rerun()
         
 def show_admin_page():
+    """🔥 MODIFIÉ : Force refresh au début"""
+    st.cache_data.clear()
+    load_data(force_refresh=True)
+    
     st.title(f"Admin : {st.session_state.user_name}")
     logout_button()
-
-    st.cache_data.clear()
 
     # --- SECTION NOTIFICATIONS ---
     st.subheader("🔔 Notifications")
@@ -583,6 +588,9 @@ def show_admin_page():
                         st.rerun()
 
 def show_client_page():
+    """🔥 MODIFIÉ : Force refresh après actions"""
+    st.cache_data.clear()
+    
     st.title(f"Client : {st.session_state.user_name}")
     logout_button()
     
@@ -605,6 +613,7 @@ def show_client_page():
         }
         append_row("Trips", new_trip)
         st.success("✅ Course publiée !")
+        time.sleep(0.5)  # 🔥 Attend GitHub
         st.cache_data.clear()
         st.rerun()
     
@@ -654,13 +663,16 @@ def show_client_page():
                         trip_index=idx
                     )
                 
-                # Ces messages et le refresh doivent être DANS le bloc du bouton
                 st.warning("Course annulée")
-                time.sleep(0.3)
+                time.sleep(0.3)  # 🔥 Attend GitHub
                 st.cache_data.clear()
                 st.rerun()
             
 def show_driver_page():
+    """🔥 MODIFIÉ : Force refresh au début et après actions"""
+    st.cache_data.clear()
+    load_data(force_refresh=True)
+    
     st.subheader("🔔 Notifications")
     notifs = get_unread_notifications(st.session_state.user_name)
     if not notifs.empty:
@@ -702,6 +714,8 @@ def show_driver_page():
                 update_row_field("Trips", my_accepted.index[0], "Status", "Completed")
                 reset_delivery_time(st.session_state.user_name)
                 st.success("✅ Course terminée")
+                time.sleep(0.5)
+                st.cache_data.clear()
                 st.rerun()
         with col2:
             if st.button("❌ Annuler", use_container_width=True):
@@ -709,6 +723,8 @@ def show_driver_page():
                 update_row_field("Trips", my_accepted.index[0], "Driver", "")
                 reset_delivery_time(st.session_state.user_name)
                 st.warning("Course annulée")
+                time.sleep(0.3)
+                st.cache_data.clear()
                 st.rerun()
         with col3:
             st.metric("Livraison", get_delivery_time(st.session_state.user_name))
@@ -732,8 +748,16 @@ def show_driver_page():
                 update_row_field("Trips", idx, "Status", "Accepted")
                 update_row_field("Trips", idx, "Driver", st.session_state.user_name)
                 set_delivery_start_time(st.session_state.user_name)
+                
+                # Notification Admin
+                add_notification(
+                    "Admin", 
+                    f"✅ {st.session_state.user_name} a accepté la course {row['Start Point']} → {row['End Point']}",
+                    idx
+                )
+                
                 st.success("✅ Course acceptée !")
-                time.sleep(0.5)
+                time.sleep(0.5)  # 🔥 Attend GitHub
                 st.cache_data.clear()
                 st.rerun()
 
@@ -758,22 +782,3 @@ elif st.session_state.logged_in:
         show_driver_page()
 else:
     show_login_page()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
