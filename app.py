@@ -161,8 +161,11 @@ def save_data(data, initial_create=False):
     except:
         pass
 
+st.cache_data(ttl=1)
 def fetch_data(sheet_name):
-    data = load_data()
+    if "data_store" not in st.session_state:
+        load_data()
+    data = st.session_state.data_store
     df = pd.DataFrame(data.get(sheet_name, []))
     expected_cols = SHEET_SCHEMAS.get(sheet_name, [])
     for col in expected_cols:
@@ -470,6 +473,8 @@ def show_admin_page():
     st.title(f"Admin : {st.session_state.user_name}")
     logout_button()
 
+    st.cache_data.clear()
+
     # --- SECTION NOTIFICATIONS ---
     st.subheader("🔔 Notifications")
     notifs = get_unread_notifications("Admin")
@@ -600,6 +605,7 @@ def show_client_page():
         }
         append_row("Trips", new_trip)
         st.success("✅ Course publiée !")
+        st.cache_data.clear()
         st.rerun()
     
     st.header("📋 Mes courses")
@@ -650,6 +656,8 @@ def show_client_page():
                 
                 # Ces messages et le refresh doivent être DANS le bloc du bouton
                 st.warning("Course annulée")
+                time.sleep(0.3)
+                st.cache_data.clear()
                 st.rerun()
             
 def show_driver_page():
@@ -725,6 +733,8 @@ def show_driver_page():
                 update_row_field("Trips", idx, "Driver", st.session_state.user_name)
                 set_delivery_start_time(st.session_state.user_name)
                 st.success("✅ Course acceptée !")
+                time.sleep(0.5)
+                st.cache_data.clear()
                 st.rerun()
 
 # =======================================================
@@ -748,6 +758,7 @@ elif st.session_state.logged_in:
         show_driver_page()
 else:
     show_login_page()
+
 
 
 
