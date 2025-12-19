@@ -108,8 +108,7 @@ def save_data(data, initial_create=False):
         "message": "Update data.json from Streamlit",
         "content": base64.b64encode(json.dumps(data, indent=4).encode()).decode()
     }
-
-    r = requests.put(api_url, headers=headers, data=json.dumps(payload))
+    requests.put(api_url, headers=headers, data=json.dumps(payload))
 
 # =======================================================
 #               HELPERS DATA
@@ -134,46 +133,18 @@ def update_row_field(sheet, idx, field, value):
         save_data(data)
 
 # =======================================================
-#               NOTIFICATIONS
-# =======================================================
-def add_notification(target, message, trip_index):
-    append_row("Notifications", {
-        "Target": target,
-        "Message": message,
-        "TripIndex": trip_index,
-        "Read": False,
-        "Timestamp": time.time()
-    })
-
-def get_unread_notifications(target):
-    df = fetch_data("Notifications")
-    return df[(df["Target"] == target) & (df["Read"] == False)]
-
-def mark_notification_read(idx):
-    update_row_field("Notifications", idx, "Read", True)
-
-# =======================================================
 #               PAGES
 # =======================================================
 def show_admin_page():
     st_autorefresh(interval=3000, key="admin_refresh")
-
     st.title("Admin")
-    notifs = get_unread_notifications("Admin")
-    for idx, n in notifs.iterrows():
-        st.warning(n["Message"])
-        if st.button("Lu", key=f"a{idx}"):
-            mark_notification_read(idx)
-            st.rerun()
 
 def show_client_page():
     st_autorefresh(interval=3000, key="client_refresh")
-
     st.title("Client")
 
 def show_driver_page():
     st_autorefresh(interval=3000, key="driver_refresh")
-
     st.title("Driver")
 
 # =======================================================
