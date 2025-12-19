@@ -33,7 +33,7 @@
             "Vehicle Type": "Scooter",
             "Engine Displacement": "125",
             "Is Online": true,
-            "Login Time": 1766079847.2047691,
+            "Login Time": 1766148274.1891584,
             "Delivery Start Time": 0
         }
     ],
@@ -96,21 +96,21 @@
     "Notifications": [
         {
             "Target": "Admin",
-            "Message": "\ud83d\udea8 Le client Sitivakely a annul\u00e9 la course Faravohitra \u2192 Ambanidia",
+            "Message": "🚨 Le client Sitivakely a annulé la course Faravohitra → Ambanidia",
             "TripIndex": 0,
             "Read": true,
             "Timestamp": 1765562000
         },
         {
             "Target": "Steve Antonio",
-            "Message": "\u274c Le client Sitivakely a annul\u00e9 la course Faravohitra \u2192 Ambanidia",
+            "Message": "❌ Le client Sitivakely a annulé la course Faravohitra → Ambanidia",
             "TripIndex": 0,
             "Read": true,
             "Timestamp": 1765562001
         },
         {
             "Target": "Admin",
-            "Message": "\ud83d\udea8 Le client Sitivakely a annul\u00e9 la course Test \u2192 Test",
+            "Message": "🚨 Le client Sitivakely a annulé la course Test → Test",
             "TripIndex": 4,
             "Read": false,
             "Timestamp": 1766079809.2837822
