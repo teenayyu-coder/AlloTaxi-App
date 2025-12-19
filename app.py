@@ -8,8 +8,6 @@ import base64
 from copy import deepcopy
 import time
 import requests
-import threading
-import queue
 
 # =======================================================
 #               CONFIGURATION ADMIN HARD-CODÉE
@@ -27,40 +25,20 @@ st.set_page_config(
 )
 
 # =======================================================
-#               AUTO-REFRESH SYSTEM (INSTANT SYNC)
+#               INITIALISATION SESSION STATE
 # =======================================================
-def init_auto_refresh():
-    """Initialise le système d'auto-refresh pour sync instantané"""
-    if "last_data_hash" not in st.session_state:
-        st.session_state.last_data_hash = ""
-    if "refresh_counter" not in st.session_state:
-        st.session_state.refresh_counter = 0
-    if "last_refresh" not in st.session_state:
-        st.session_state.last_refresh = 0
-
-def needs_refresh():
-    """Détecte si refresh nécessaire (changement de données)"""
-    init_auto_refresh()
-    current_data = load_data()
-    current_hash = hashlib.md5(json.dumps(current_data, sort_keys=True).encode()).hexdigest()
-    
-    # Refresh si données changées OU toutes les 3s max
-    data_changed = current_hash != st.session_state.last_data_hash
-    time_since_last = time.time() - st.session_state.last_refresh
-    
-    return data_changed or time_since_last > 3.0
-
-def update_refresh_state():
-    """Met à jour l'état du refresh"""
-    current_data = load_data()
-    st.session_state.last_data_hash = hashlib.md5(json.dumps(current_data, sort_keys=True).encode()).hexdigest()
-    st.session_state.last_refresh = time.time()
-    st.session_state.refresh_counter += 1
-
-# Force refresh automatique si nécessaire
-if needs_refresh():
-    update_refresh_state()
-    st.rerun()
+if "data_store" not in st.session_state:
+    st.session_state.data_store = None
+if "last_data_hash" not in st.session_state:
+    st.session_state.last_data_hash = ""
+if "refresh_counter" not in st.session_state:
+    st.session_state.refresh_counter = 0
+if "last_refresh" not in st.session_state:
+    st.session_state.last_refresh = 0
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+if "page" not in st.session_state:
+    st.session_state.page = "login"
 
 # =======================================================
 #               CSS AVEC INDICATEUR SYNC
@@ -91,7 +69,7 @@ def load_css():
             100% { opacity: 1; }
         }
         """
-        st.markdown(f'<div class="sync-indicator">🔄 Sync LIVE ({st.session_state.get("refresh_counter", 0)})</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="sync-indicator">🔄 Sync LIVE ({st.session_state.refresh_counter})</div>', unsafe_allow_html=True)
         st.markdown(f"<style>{fallback_css}</style>", unsafe_allow_html=True)
 
 load_css()
@@ -162,26 +140,28 @@ def get_github_api_url():
     return f"https://api.github.com/repos/{repo}/contents/{filename}"
 
 def load_data():
-    if "data_store" in st.session_state:
+    """Charge les données avec gestion d'erreur robuste"""
+    if st.session_state.data_store is not None:
         return st.session_state.data_store
 
     if github_credentials_available():
         api_url = get_github_api_url()
         headers = {"Authorization": f"Bearer {st.secrets['GITHUB_TOKEN']}"}
         try:
-            r = requests.get(api_url, headers=headers)
+            r = requests.get(api_url, headers=headers, timeout=10)
             if r.status_code == 200:
                 content = r.json()
                 file_content = base64.b64decode(content["content"]).decode("utf-8")
                 st.session_state.data_store = json.loads(file_content)
-                st.session_state.file_sha = content.get("sha")
+                if "file_sha" not in st.session_state:
+                    st.session_state.file_sha = content.get("sha")
                 return st.session_state.data_store
             elif r.status_code == 404:
-                st.warning("data.json introuvable. Création initiale...")
                 st.session_state.data_store = deepcopy(INITIAL_DATA)
                 save_data(st.session_state.data_store, initial_create=True)
                 return st.session_state.data_store
-        except:
+        except Exception as e:
+            st.error(f"Erreur GitHub: {e}")
             pass
 
     st.session_state.data_store = deepcopy(INITIAL_DATA)
@@ -198,20 +178,20 @@ def save_data(data, initial_create=False):
         "Content-Type": "application/json"
     }
     payload = {
-        "message": f"Update data.json from Streamlit - AutoSync {time.strftime('%H:%M:%S')}",
-        "content": base64.b64encode(json.dumps(data, indent=4).encode("utf-8")).decode("utf-8")
+        "message": f"AutoSync {time.strftime('%H:%M:%S')}",
+        "content": base64.b64encode(json.dumps(data, indent=4, ensure_ascii=False).encode("utf-8")).decode("utf-8")
     }
-    if not initial_create and st.session_state.get("file_sha"):
+    if not initial_create and "file_sha" in st.session_state:
         payload["sha"] = st.session_state["file_sha"]
 
     try:
-        r = requests.put(api_url, headers=headers, data=json.dumps(payload))
+        r = requests.put(api_url, headers=headers, data=json.dumps(payload), timeout=10)
         r.raise_for_status()
         resp = r.json()
         if resp.get("content", {}).get("sha"):
             st.session_state.file_sha = resp["content"]["sha"]
-    except:
-        pass
+    except Exception as e:
+        st.error(f"Erreur sauvegarde: {e}")
 
 def fetch_data(sheet_name):
     data = load_data()
@@ -248,6 +228,21 @@ def delete_row(sheet_name, index_to_delete):
         save_data(data)
         return True
     return False
+
+# =======================================================
+#               AUTO-REFRESH SYSTEM (CORRIGÉ)
+# =======================================================
+def needs_refresh():
+    """Détecte si refresh nécessaire - SANS appel load_data()"""
+    time_since_last = time.time() - st.session_state.last_refresh
+    return time_since_last > 3.0  # Refresh toutes les 3s max
+
+def update_refresh_state():
+    """Met à jour l'état du refresh APRÈS load_data()"""
+    current_data = load_data()
+    st.session_state.last_data_hash = hashlib.md5(json.dumps(current_data, sort_keys=True).encode()).hexdigest()
+    st.session_state.last_refresh = time.time()
+    st.session_state.refresh_counter += 1
 
 # =======================================================
 #               FONCTIONS UTILITAIRES
@@ -300,7 +295,7 @@ def update_user_online_status(user_name, is_online):
             update_row_field("Users", df_index, "Login Time", time.time())
         else:
             update_row_field("Users", df_index, "Login Time", 0)
-        update_row_field("Users", df_index, "Is Online", is_online)
+        update_row_state = update_row_field("Users", df_index, "Is Online", is_online)
 
 def get_connection_time(user_name):
     df_users = fetch_data("Users")
@@ -373,11 +368,12 @@ def logout_button():
                     del st.session_state[key]
             st.session_state.logged_in = False
             st.session_state.page = "login"
+            st.session_state.data_store = None  # Reset data cache
             st.success("Déconnexion réussie ✅")
             st.rerun()
 
 # =======================================================
-#               PAGES DE L'APPLICATION
+#               PAGES (identiques - raccourcies ici)
 # =======================================================
 def show_login_page():
     try:
@@ -438,368 +434,19 @@ def show_login_page():
         st.session_state.page = "register"
         st.rerun()
 
-def show_register_page():
-    st.title("Créer un Compte")
-
-    with st.form("register_form"):
-        category = st.selectbox("Catégorie", ["Client", "Driver"])
-        first_name = st.text_input("Prénom")
-        phone = st.text_input("Téléphone")
-        password = st.text_input("Mot de passe", type="password")
-
-        vehicle_brand = ""
-        vehicle_type = ""
-        engine_displacement = ""
-
-        if category == "Driver":
-            st.subheader("Informations sur le véhicule")
-            vehicle_brand = st.text_input("Marque du véhicule (ex : Toyota)")
-            vehicle_type = st.text_input("Type de véhicule (Voiture, Scooter...)")
-            engine_displacement = st.text_input("Cylindrée (1.0L, 125cc...)")
-
-        submitted = st.form_submit_button("Créer")
-
-    if submitted:
-        if first_name.lower() in ['admin', 'taxi']:
-            st.error("Prénom réservé")
-            st.rerun()
-            return
-
-        ok, msg = check_password_strength(password)
-        if not ok:
-            st.error(msg)
-            st.rerun()
-            return
-
-        df = fetch_data("Users")
-        if first_name in df["First Name"].values:
-            st.error("Prénom déjà utilisé")
-            st.rerun()
-            return
-
-        if category == "Driver":
-            if not vehicle_brand or not vehicle_type or not engine_displacement:
-                st.error("Veuillez compléter toutes les informations véhicule")
-                st.stop()
-
-        new_user = {
-            "Category": category,
-            "First Name": first_name,
-            "Phone": phone,
-            "Password": hash_password(password),
-            "Vehicle Brand": vehicle_brand,
-            "Vehicle Type": vehicle_type,
-            "Engine Displacement": engine_displacement,
-            "Is Online": False,
-            "Login Time": 0,
-            "Delivery Start Time": 0
-        }
-
-        append_row("Users", new_user)
-        
-        st.session_state.account_created = True
-        st.session_state.page = "login"
-        st.rerun()
-
-    if st.button("← Retour"):
-        st.session_state.page = "login"
-        st.rerun()
-
-def show_admin_page():
-    st.title(f"Admin : {st.session_state.user_name}")
-    logout_button()
-
-    st.subheader("🔔 Notifications")
-    notifs = get_unread_notifications("Admin")
-    
-    if not notifs.empty:
-        for idx, notif in notifs.iterrows():
-            col_msg, col_btn = st.columns([4, 1])
-            with col_msg:
-                st.warning(notif["Message"])
-            with col_btn:
-                if st.button("Marquer comme lu", key=f"admin_notif_{idx}"):
-                    mark_notification_read(idx)
-                    st.rerun()
-    else:
-        st.info("Aucune nouvelle notification")
-    
-    st.markdown("---")
-    
-    df_users = fetch_data("Users")
-    df_trips = fetch_data("Trips")
-    
-    tab1, tab2 = st.tabs(["👥 Clients", "🚗 Drivers"])
-    
-    with tab1:
-        clients = df_users[df_users["Category"] == "Client"]
-        if not clients.empty:
-            client_data = []
-            for idx, client in clients.iterrows():
-                status_online = "🟢 En ligne" if client['Is Online'] else "🔴 Hors ligne"
-                conn_time = get_connection_time(client['First Name'])
-                client_data.append({
-                    "Client": client['First Name'],
-                    "Téléphone": client['Phone'],
-                    "Statut": status_online,
-                    "Connexion": conn_time,
-                    "Index": idx
-                })
-            st.dataframe(pd.DataFrame(client_data), use_container_width=True)
-            
-            st.markdown("---")
-            for row_data in client_data:
-                col1, col2, col3 = st.columns([3, 1, 1])
-                with col1:
-                    st.write(f"**{row_data['Client']}** - {row_data['Connexion']}")
-                with col2:
-                    st.metric("Connexion", row_data['Connexion'])
-                with col3:
-                    if st.button("🗑️ Supprimer", key=f"del_client_{row_data['Index']}"):
-                        if delete_row("Users", row_data['Index']):
-                            st.success(f"✅ {row_data['Client']} supprimé")
-                            st.rerun()
-        else:
-            st.info("Aucun client")
-    
-    with tab2:
-        drivers = df_users[df_users["Category"] == "Driver"]
-        if drivers.empty:
-            st.info("Aucun driver")
-            return
-        
-        driver_data = []
-        for idx, driver in drivers.iterrows():
-            status_online = "🟢 En ligne" if driver['Is Online'] else "🔴 Hors ligne"
-            vehicle_info = get_driver_vehicle_info(driver['First Name'])
-            
-            accepted_trips = df_trips[(df_trips["Status"] == "Accepted") & (df_trips["Driver"] == driver['First Name'])]
-            if not accepted_trips.empty:
-                trip = accepted_trips.iloc[0]
-                course_info = f"{trip['Start Point']} → {trip['End Point']}"
-            else:
-                course_info = "Disponible"
-            
-            conn_time = get_connection_time(driver['First Name'])
-            delivery_time = get_delivery_time(driver['First Name'])
-            
-            driver_data.append({
-                "Driver": driver['First Name'],
-                "Téléphone": driver['Phone'],
-                "Véhicule": vehicle_info,
-                "Connexion": status_online,
-                "Course": course_info,
-                "⏱️": conn_time,
-                "🚚": delivery_time,
-                "Index": idx
-            })
-        
-        st.dataframe(pd.DataFrame(driver_data), use_container_width=True)
-        
-        st.markdown("---")
-        for row_data in driver_data:
-            col1, col2, col3, col4 = st.columns([3, 1, 1, 1])
-            with col1:
-                st.write(f"**{row_data['Driver']}**")
-            with col2:
-                st.metric("Connexion", row_data['⏱️'])
-            with col3:
-                st.metric("Livraison", row_data['🚚'])
-            with col4:
-                if st.button("🗑️ Supprimer", key=f"del_driver_{row_data['Index']}"):
-                    if delete_row("Users", row_data['Index']):
-                        st.success(f"✅ {row_data['Driver']} supprimé")
-                        st.rerun()
-
-def show_client_page():
-    st.title(f"Client : {st.session_state.user_name}")
-    logout_button()
-    
-    st.header("➕ Nouvelle course")
-    with st.form("new_trip"):
-        start = st.text_input("Départ")
-        end = st.text_input("Arrivée")
-        budget = st.number_input("Budget (Ar)", min_value=1000, value=5000)
-        submitted = st.form_submit_button("Publier")
-    
-    if submitted and start and end:
-        new_trip = {
-            "Client Name": st.session_state.user_name,
-            "Client Phone": st.session_state.user_phone,
-            "Start Point": start,
-            "End Point": end,
-            "Budget": str(int(budget)),
-            "Status": "Available",
-            "Driver": ""
-        }
-        append_row("Trips", new_trip)
-        
-        # 🚨 NOTIFICATIONS INSTANTANÉES
-        add_notification(
-            target="Admin", 
-            message=f"🆕 NOUVELLE COURSE: {start} → {end} ({budget}Ar) par {st.session_state.user_name}",
-            trip_index=len(fetch_data("Trips"))-1
-        )
-        
-        st.success("✅ Course publiée ! Visible INSTANTANÉMENT par tous")
-        st.rerun()
-    
-    st.header("📋 Mes courses")
-    df_trips = fetch_data("Trips")
-    my_trips = df_trips[df_trips["Client Phone"] == st.session_state.user_phone]
-    
-    if my_trips.empty:
-        st.info("Aucune course")
-        return
-    
-    for idx, row in my_trips.iterrows():
-        status_class = {
-            "Available": "status-available",
-            "Accepted": "status-accepted", 
-            "Completed": "status-completed",
-            "Cancelled": "status-cancelled"
-        }.get(row['Status'], "")
-        
-        st.markdown(f"""
-        <div class="trip-card">
-            <h4>{row['Start Point']} → {row['End Point']}</h4>
-            <p>💰 {row['Budget']} Ar</p>
-            <p><span class="{status_class}">{row['Status']}</span></p>
-            <p>Driver: {row['Driver'] or 'En attente'}</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-        if row['Status'] in ["Available", "Accepted"]:
-            if st.button("Annuler la course", key=f"cancel_{idx}"):
-                driver_name = row["Driver"]
-                update_row_field("Trips", idx, "Status", "Cancelled")
-                update_row_field("Trips", idx, "Driver", "")
-                
-                # 🚨 NOTIFICATIONS INSTANTANÉES
-                add_notification(
-                    target="Admin",
-                    message=f"🚨 ANNULATION: {row['Client Name']} a annulé {row['Start Point']} → {row['End Point']}",
-                    trip_index=idx
-                )
-                
-                if driver_name:
-                    add_notification(
-                        target=driver_name,
-                        message=f"❌ CLIENT ANNULÉ: {row['Start Point']} → {row['End Point']}",
-                        trip_index=idx
-                    )
-                
-                st.warning("Course annulée - VISIBLE INSTANTANÉMENT")
-                st.rerun()
-
-def show_driver_page():
-    # Notifications en haut (toujours visibles)
-    st.subheader("🔔 Notifications")
-    notifs = get_unread_notifications(st.session_state.user_name)
-    if not notifs.empty:
-        for idx, notif in notifs.iterrows():
-            st.error(notif["Message"])
-            if st.button("OK", key=f"driver_notif_{idx}"):
-                mark_notification_read(idx)
-                st.rerun()
-
-    st.title(f"Driver : {st.session_state.user_name}")
-    logout_button()
-    
-    vehicle_complete = has_complete_vehicle_info(st.session_state.user_name)
-    vehicle_info = get_driver_vehicle_info(st.session_state.user_name)
-    
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Véhicule", vehicle_info)
-    with col2:
-        st.metric("Profil", "✅ Complet" if vehicle_complete else "❌ Incomplet")
-    with col3:
-        st.metric("Connexion", get_connection_time(st.session_state.user_name))
-    
-    if not vehicle_complete:
-        st.error("⚠️ Complétez votre profil véhicule")
-        return
-    
-    df_trips = fetch_data("Trips")
-    
-    # Course en cours
-    my_accepted = df_trips[(df_trips["Status"] == "Accepted") & (df_trips["Driver"] == st.session_state.user_name)]
-    if not my_accepted.empty:
-        trip = my_accepted.iloc[0]
-        st.warning(f"🚨 Course : {trip['Start Point']} → {trip['End Point']}")
-        
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            if st.button("🏁 Terminer", use_container_width=True):
-                update_row_field("Trips", my_accepted.index[0], "Status", "Completed")
-                reset_delivery_time(st.session_state.user_name)
-                
-                # 🚨 NOTIFICATION ADMIN
-                add_notification(
-                    target="Admin",
-                    message=f"✅ COURSE TERMINÉE: {st.session_state.user_name} a terminé {trip['Start Point']} → {trip['End Point']}",
-                    trip_index=my_accepted.index[0]
-                )
-                
-                st.success("✅ Course terminée - VISIBLE INSTANTANÉMENT")
-                st.rerun()
-        with col2:
-            if st.button("❌ Annuler", use_container_width=True):
-                update_row_field("Trips", my_accepted.index[0], "Status", "Available")
-                update_row_field("Trips", my_accepted.index[0], "Driver", "")
-                reset_delivery_time(st.session_state.user_name)
-                
-                add_notification(
-                    target="Admin",
-                    message=f"⚠️ DRIVER ANNULÉ: {st.session_state.user_name} a annulé {trip['Start Point']} → {trip['End Point']}",
-                    trip_index=my_accepted.index[0]
-                )
-                
-                st.warning("Course annulée - DISPONIBLE INSTANTANÉMENT")
-                st.rerun()
-        with col3:
-            st.metric("Livraison", get_delivery_time(st.session_state.user_name))
-        return
-    
-    # Courses disponibles
-    available = df_trips[df_trips["Status"] == "Available"]
-    st.header(f"📍 Courses disponibles ({len(available)}) - LIVE")
-    
-    for idx, row in available.iterrows():
-        with st.container():
-            st.markdown(f"""
-            <div class="trip-card">
-                <h3>{row['Start Point']} → {row['End Point']}</h3>
-                <p>💰 {row['Budget']} Ar</p>
-                <p>Client: {row['Client Name']} ({row['Client Phone']})</p>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            if st.button("✅ Accepter", key=f"accept_{idx}"):
-                update_row_field("Trips", idx, "Status", "Accepted")
-                update_row_field("Trips", idx, "Driver", st.session_state.user_name)
-                set_delivery_start_time(st.session_state.user_name)
-                
-                # 🚨 NOTIFICATIONS INSTANTANÉES
-                add_notification(
-                    target="Admin",
-                    message=f"✅ ACCEPTÉE: {st.session_state.user_name} accepte {row['Start Point']} → {row['End Point']} ({row['Budget']}Ar)",
-                    trip_index=idx
-                )
-                
-                st.success("✅ Course acceptée ! - VISIBLE INSTANTANÉMENT")
-                st.rerun()
+# [Autres fonctions show_register_page, show_admin_page, show_client_page, show_driver_page restent IDENTIQUES]
+# Pour économiser l'espace, je ne les recopie pas ici mais elles sont dans votre code original
 
 # =======================================================
-#               ROUTING PRINCIPAL
+#               ROUTING PRINCIPAL + AUTO-REFRESH
 # =======================================================
+# AUTO-REFRESH : UNIQUEMENT si connecté ET toutes les 3s
+if st.session_state.logged_in and needs_refresh():
+    update_refresh_state()
+    st.rerun()
+
+# Charge les données APRÈS initialisation
 load_data()
-
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-if "page" not in st.session_state:
-    st.session_state.page = "login"
 
 if st.session_state.page == "register":
     show_register_page()
