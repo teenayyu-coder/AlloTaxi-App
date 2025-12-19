@@ -1,4 +1,4 @@
-# app.py - VERSION COMPLÈTE ET FONCTIONNELLE
+# app.py
 import streamlit as st
 import pandas as pd
 import hashlib
@@ -13,7 +13,7 @@ import requests
 #               CONFIGURATION ADMIN HARD-CODÉE
 # =======================================================
 ADMIN_USERNAME = "admin"
-ADMIN_PASSWORD_HASH = hashlib.sha256("adminpass".encode()).hexdigest()
+ADMIN_PASSWORD_HASH = hashlib.sha256("adminpass".encode()).hexdigest()  # ✅ admin/adminpass
 
 # =======================================================
 #               CONFIGURATION STREAMLIT
@@ -24,53 +24,26 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# =======================================================
-#               INITIALISATION SESSION STATE
-# =======================================================
-if "data_store" not in st.session_state:
-    st.session_state.data_store = None
-if "last_data_hash" not in st.session_state:
-    st.session_state.last_data_hash = ""
-if "refresh_counter" not in st.session_state:
-    st.session_state.refresh_counter = 0
-if "last_refresh" not in st.session_state:
-    st.session_state.last_refresh = 0
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-if "page" not in st.session_state:
-    st.session_state.page = "login"
-if "file_sha" not in st.session_state:
-    st.session_state.file_sha = None
-
-# =======================================================
-#               CSS AVEC INDICATEUR SYNC
-# =======================================================
+# Charge le CSS externe
 def load_css():
-    fallback_css = """
-    .trip-card {padding: 15px; border-radius: 12px; background: #f0f4f8; margin-bottom: 15px; border: 1px solid #dcdfe4;}
-    .status-available {color: #28a745; font-weight: bold;}
-    .status-accepted {color: #ffc107; font-weight: bold;}
-    .status-completed {color: #6c757d; font-weight: bold;}
-    .status-cancelled {color: #dc3545; font-weight: bold;}
-    .vehicle-warning {background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 8px; margin: 20px 0;}
-    .chrono {font-weight: bold; color: #007bff;}
-    .sync-indicator {
-        position: fixed; top: 10px; right: 10px; 
-        background: #28a745; color: white; padding: 5px 10px; 
-        border-radius: 20px; font-size: 12px; z-index: 1000;
-        animation: pulse 2s infinite;
-    }
-    @keyframes pulse {
-        0% { opacity: 1; }
-        50% { opacity: 0.7; }
-        100% { opacity: 1; }
-    }
-    """
-    st.markdown(f'<div class="sync-indicator">🔄 Sync LIVE ({st.session_state.refresh_counter})</div>', unsafe_allow_html=True)
-    st.markdown(f"<style>{fallback_css}</style>", unsafe_allow_html=True)
+    try:
+        with open('style.css', 'r') as f:
+            css = f.read()
+        st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
+    except FileNotFoundError:
+        # CSS de fallback si style.css manquant
+        fallback_css = """
+        .trip-card {padding: 15px; border-radius: 12px; background: #f0f4f8; margin-bottom: 15px; border: 1px solid #dcdfe4;}
+        .status-available {color: #28a745; font-weight: bold;}
+        .status-accepted {color: #ffc107; font-weight: bold;}
+        .status-completed {color: #6c757d; font-weight: bold;}
+        .status-cancelled {color: #dc3545; font-weight: bold;}
+        .vehicle-warning {background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 8px; margin: 20px 0;}
+        .chrono {font-weight: bold; color: #007bff;}
+        """
+        st.markdown(f"<style>{fallback_css}</style>", unsafe_allow_html=True)
 
 load_css()
-
 # =======================================================
 #               SCHEMAS DES DONNÉES
 # =======================================================
@@ -137,14 +110,14 @@ def get_github_api_url():
     return f"https://api.github.com/repos/{repo}/contents/{filename}"
 
 def load_data():
-    if st.session_state.data_store is not None:
+    if "data_store" in st.session_state:
         return st.session_state.data_store
 
     if github_credentials_available():
         api_url = get_github_api_url()
         headers = {"Authorization": f"Bearer {st.secrets['GITHUB_TOKEN']}"}
         try:
-            r = requests.get(api_url, headers=headers, timeout=10)
+            r = requests.get(api_url, headers=headers)
             if r.status_code == 200:
                 content = r.json()
                 file_content = base64.b64decode(content["content"]).decode("utf-8")
@@ -152,6 +125,7 @@ def load_data():
                 st.session_state.file_sha = content.get("sha")
                 return st.session_state.data_store
             elif r.status_code == 404:
+                st.warning("data.json introuvable. Création initiale...")
                 st.session_state.data_store = deepcopy(INITIAL_DATA)
                 save_data(st.session_state.data_store, initial_create=True)
                 return st.session_state.data_store
@@ -172,14 +146,14 @@ def save_data(data, initial_create=False):
         "Content-Type": "application/json"
     }
     payload = {
-        "message": f"AutoSync {time.strftime('%H:%M:%S')}",
-        "content": base64.b64encode(json.dumps(data, indent=4, ensure_ascii=False).encode("utf-8")).decode("utf-8")
+        "message": "Update data.json from Streamlit",
+        "content": base64.b64encode(json.dumps(data, indent=4).encode("utf-8")).decode("utf-8")
     }
-    if not initial_create and st.session_state.file_sha:
-        payload["sha"] = st.session_state.file_sha
+    if not initial_create and st.session_state.get("file_sha"):
+        payload["sha"] = st.session_state["file_sha"]
 
     try:
-        r = requests.put(api_url, headers=headers, data=json.dumps(payload), timeout=10)
+        r = requests.put(api_url, headers=headers, data=json.dumps(payload))
         r.raise_for_status()
         resp = r.json()
         if resp.get("content", {}).get("sha"):
@@ -194,6 +168,7 @@ def fetch_data(sheet_name):
     for col in expected_cols:
         if col not in df.columns:
             df[col] = ''
+    # Convertir les timestamps en float pour éviter les erreurs
     if "Login Time" in df.columns:
         df["Login Time"] = pd.to_numeric(df["Login Time"], errors='coerce').fillna(0)
     if "Delivery Start Time" in df.columns:
@@ -224,24 +199,12 @@ def delete_row(sheet_name, index_to_delete):
     return False
 
 # =======================================================
-#               AUTO-REFRESH SYSTEM
-# =======================================================
-def needs_refresh():
-    time_since_last = time.time() - st.session_state.last_refresh
-    return time_since_last > 3.0
-
-def update_refresh_state():
-    current_data = load_data()
-    st.session_state.last_data_hash = hashlib.md5(json.dumps(current_data, sort_keys=True).encode()).hexdigest()
-    st.session_state.last_refresh = time.time()
-    st.session_state.refresh_counter += 1
-
-# =======================================================
 #               FONCTIONS UTILITAIRES
 # =======================================================
+# ----------- NOTIFICATIONS -----------
 def add_notification(target, message, trip_index):
     notif = {
-        "Target": target,
+        "Target": target,        # "Admin" ou nom du driver
         "Message": message,
         "TripIndex": trip_index,
         "Read": False,
@@ -249,9 +212,11 @@ def add_notification(target, message, trip_index):
     }
     append_row("Notifications", notif)
 
+
 def get_unread_notifications(target):
     df = fetch_data("Notifications")
     return df[(df["Target"] == target) & (df["Read"] == False)]
+
 
 def mark_notification_read(index):
     update_row_field("Notifications", index, "Read", True)
@@ -353,115 +318,129 @@ def logout_button():
     col1, col2 = st.columns([4, 1])
     with col2:
         if st.button("Déconnexion"):
-            if st.session_state.get('user_category') in ["Driver"]:
+            if st.session_state.get('user_category') in ["Driver", "Admin"]:
                 update_user_online_status(st.session_state.user_name, False)
             for key in ['logged_in', 'page', 'user_name', 'user_category', 'user_phone', 'driver_accepted_trip']:
                 if key in st.session_state:
                     del st.session_state[key]
             st.session_state.logged_in = False
             st.session_state.page = "login"
-            st.session_state.data_store = None
             st.success("Déconnexion réussie ✅")
             st.rerun()
 
 # =======================================================
-#               PAGES DE L'APPLICATION - COMPLÈTES
+#               PAGES DE L'APPLICATION
 # =======================================================
 def show_login_page():
     try:
         st.image("allotaxi.ico", width=200)
     except:
         pass
-    try:
-        st.image("allotaxitana.ico", width=300)
-    except:
-        pass
-    st.header("🔐 Connexion")
+    st.image("allotaxitana.ico", width=300)
+    st.header("Connexion")
     
     if st.session_state.get("account_created"):
-        st.success("✅ Votre compte a été créé avec succès !")
-        del st.session_state.account_created
+        st.success("Bienvenue chez Allo Taxi Tanà ! Votre compte a été créé avec succès.")
+        st.session_state.account_created = False
     
     with st.form("login_form"):
-        login_name = st.text_input("👤 Prénom")
-        login_pass = st.text_input("🔑 Mot de passe", type="password")
-        submitted = st.form_submit_button("🚀 Se connecter")
+        login_name = st.text_input("Prénom")
+        login_pass = st.text_input("Mot de passe", type="password")
+        submitted = st.form_submit_button("Se connecter")
     
     if submitted:
-        # Admin
+        # Admin hardcodé
         if login_name == ADMIN_USERNAME:
             if hash_password(login_pass) == ADMIN_PASSWORD_HASH:
                 st.session_state.logged_in = True
                 st.session_state.user_name = ADMIN_USERNAME
                 st.session_state.user_category = "Admin"
                 st.session_state.user_phone = "000000000"
-                st.success("👋 Bienvenue Admin")
+                st.success(f"Bienvenue Admin {ADMIN_USERNAME} 👋")
                 st.rerun()
             else:
                 st.error("❌ Mot de passe admin incorrect")
+                return
         
-        # Users
-        else:
-            users_df = fetch_data("Users")
-            row = users_df[users_df["First Name"] == login_name]
-            if not row.empty and hash_password(login_pass) == row["Password"].iloc[0]:
-                st.session_state.logged_in = True
-                st.session_state.user_name = row["First Name"].iloc[0]
-                st.session_state.user_category = row["Category"].iloc[0]
-                st.session_state.user_phone = row["Phone"].iloc[0]
-                
-                if st.session_state.user_category == "Driver":
-                    update_user_online_status(st.session_state.user_name, True)
-                
-                st.success(f"👋 Bienvenue {st.session_state.user_name}")
-                st.rerun()
-            else:
-                st.error("❌ Identifiants incorrects")
+        # Utilisateurs JSON
+        users_df = fetch_data("Users")
+        if users_df.empty:
+            st.error("Aucun utilisateur enregistré")
+            return
+        
+        row = users_df[users_df["First Name"] == login_name]
+        if row.empty:
+            st.error("❌ Prénom introuvable")
+            return
+        
+        if hash_password(login_pass) != row["Password"].iloc[0]:
+            st.error("❌ Mot de passe incorrect")
+            return
+        
+        st.session_state.logged_in = True
+        st.session_state.user_name = row["First Name"].iloc[0]
+        st.session_state.user_category = row["Category"].iloc[0]
+        st.session_state.user_phone = row["Phone"].iloc[0]
+        
+        if st.session_state.user_category == "Driver":
+            update_user_online_status(st.session_state.user_name, True)
+        
+        st.success(f"Bienvenue {st.session_state.user_name} 👋")
+        st.rerun()
     
     if st.button("➕ Créer un compte"):
         st.session_state.page = "register"
         st.rerun()
 
 def show_register_page():
-    st.title("➕ Créer un Compte")
-    
+    st.title("Créer un Compte")
+
+    # ---- FORMULAIRE ----
     with st.form("register_form"):
         category = st.selectbox("Catégorie", ["Client", "Driver"])
         first_name = st.text_input("Prénom")
         phone = st.text_input("Téléphone")
         password = st.text_input("Mot de passe", type="password")
-        
+
+        # Champs véhicule UNIQUEMENT si driver
         vehicle_brand = ""
         vehicle_type = ""
         engine_displacement = ""
-        
+
         if category == "Driver":
-            st.subheader("🚗 Informations véhicule")
-            vehicle_brand = st.text_input("Marque")
-            vehicle_type = st.text_input("Type")
-            engine_displacement = st.text_input("Cylindrée")
-        
+            st.subheader("Informations sur le véhicule")
+            vehicle_brand = st.text_input("Marque du véhicule (ex : Toyota)")
+            vehicle_type = st.text_input("Type de véhicule (Voiture, Scooter...)")
+            engine_displacement = st.text_input("Cylindrée (1.0L, 125cc...)")
+
         submitted = st.form_submit_button("Créer")
-    
+
+    # ---- TRAITEMENT DU FORM ----
     if submitted:
         if first_name.lower() in ['admin', 'taxi']:
-            st.error("❌ Prénom réservé")
+            st.error("Prénom réservé")
+            st.rerun()
             return
-        
+
         ok, msg = check_password_strength(password)
         if not ok:
-            st.error(f"❌ {msg}")
+            st.error(msg)
+            st.rerun()
             return
-        
+
         df = fetch_data("Users")
         if first_name in df["First Name"].values:
-            st.error("❌ Prénom déjà utilisé")
+            st.error("Prénom déjà utilisé")
+            st.rerun()
             return
-        
-        if category == "Driver" and not (vehicle_brand and vehicle_type and engine_displacement):
-            st.error("❌ Complétez infos véhicule")
-            return
-        
+
+        # Driver: Vérification véhicule
+        if category == "Driver":
+            if not vehicle_brand or not vehicle_type or not engine_displacement:
+                st.error("Veuillez compléter toutes les informations véhicule")
+                st.stop()
+
+        # Création du compte
         new_user = {
             "Category": category,
             "First Name": first_name,
@@ -474,89 +453,140 @@ def show_register_page():
             "Login Time": 0,
             "Delivery Start Time": 0
         }
-        
+
         append_row("Users", new_user)
+        
         st.session_state.account_created = True
         st.session_state.page = "login"
+        
         st.rerun()
-    
+
+    # ---- Retour ----
     if st.button("← Retour"):
         st.session_state.page = "login"
         st.rerun()
-
+        
 def show_admin_page():
-    st.title(f"🛡️️ Admin : {st.session_state.user_name}")
+    st.title(f"Admin : {st.session_state.user_name}")
     logout_button()
-    
-    # Notifications
+
+    # --- SECTION NOTIFICATIONS ---
     st.subheader("🔔 Notifications")
     notifs = get_unread_notifications("Admin")
+    
     if not notifs.empty:
         for idx, notif in notifs.iterrows():
-            col1, col2 = st.columns([4, 1])
-            with col1:
+            # On utilise des colonnes pour aligner le message et le bouton
+            col_msg, col_btn = st.columns([4, 1])
+            with col_msg:
                 st.warning(notif["Message"])
-            with col2:
-                if st.button("✓ Lu", key=f"admin_notif_{idx}"):
+            with col_btn:
+                if st.button("Marquer comme lu", key=f"admin_notif_{idx}"):
                     mark_notification_read(idx)
                     st.rerun()
     else:
-        st.info("✅ Aucune notification")
+        st.info("Aucune nouvelle notification")
     
-    st.markdown("---")
+    st.markdown("---") # Séparateur visuel
     
     df_users = fetch_data("Users")
     df_trips = fetch_data("Trips")
     
+    # onglet Clients
     tab1, tab2 = st.tabs(["👥 Clients", "🚗 Drivers"])
     
     with tab1:
         clients = df_users[df_users["Category"] == "Client"]
-        if clients.empty:
-            st.info("Aucun client")
-        else:
+        if not clients.empty:
+            client_data = []
             for idx, client in clients.iterrows():
+                status_online = "🟢 En ligne" if client['Is Online'] else "🔴 Hors ligne"
+                conn_time = get_connection_time(client['First Name'])
+                client_data.append({
+                    "Client": client['First Name'],
+                    "Téléphone": client['Phone'],
+                    "Statut": status_online,
+                    "Connexion": conn_time,
+                    "Index": idx
+                })
+            st.dataframe(pd.DataFrame(client_data), use_container_width=True)
+            
+            # Boutons suppression clients
+            st.markdown("---")
+            for row_data in client_data:
                 col1, col2, col3 = st.columns([3, 1, 1])
-                status = "🟢 En ligne" if client['Is Online'] else "🔴 Hors ligne"
                 with col1:
-                    st.write(f"**{client['First Name']}**")
+                    st.write(f"**{row_data['Client']}** - {row_data['Connexion']}")
                 with col2:
-                    st.metric("Statut", status)
+                    st.metric("Connexion", row_data['Connexion'])
                 with col3:
-                    if st.button("🗑️", key=f"del_client_{idx}"):
-                        delete_row("Users", idx)
-                        st.rerun()
+                    if st.button("🗑️ Supprimer", key=f"del_client_{row_data['Index']}"):
+                        if delete_row("Users", row_data['Index']):
+                            st.success(f"✅ {row_data['Client']} supprimé")
+                            st.rerun()
+        else:
+            st.info("Aucun client")
     
     with tab2:
         drivers = df_users[df_users["Category"] == "Driver"]
         if drivers.empty:
             st.info("Aucun driver")
-        else:
-            for idx, driver in drivers.iterrows():
-                col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
-                vehicle = get_driver_vehicle_info(driver['First Name'])
-                with col1:
-                    st.write(f"**{driver['First Name']}**")
-                with col2:
-                    st.metric("Véhicule", vehicle)
-                with col3:
-                    st.metric("Connexion", get_connection_time(driver['First Name']))
-                with col4:
-                    if st.button("🗑️", key=f"del_driver_{idx}"):
-                        delete_row("Users", idx)
+            return
+        
+        driver_data = []
+        for idx, driver in drivers.iterrows():
+            status_online = "🟢 En ligne" if driver['Is Online'] else "🔴 Hors ligne"
+            vehicle_info = get_driver_vehicle_info(driver['First Name'])
+            
+            accepted_trips = df_trips[(df_trips["Status"] == "Accepted") & (df_trips["Driver"] == driver['First Name'])]
+            if not accepted_trips.empty:
+                trip = accepted_trips.iloc[0]
+                course_info = f"{trip['Start Point']} → {trip['End Point']}"
+            else:
+                course_info = "Disponible"
+            
+            conn_time = get_connection_time(driver['First Name'])
+            delivery_time = get_delivery_time(driver['First Name'])
+            
+            driver_data.append({
+                "Driver": driver['First Name'],
+                "Téléphone": driver['Phone'],
+                "Véhicule": vehicle_info,
+                "Connexion": status_online,
+                "Course": course_info,
+                "⏱️": conn_time,
+                "🚚": delivery_time,
+                "Index": idx
+            })
+        
+        st.dataframe(pd.DataFrame(driver_data), use_container_width=True)
+        
+        # Boutons suppression drivers
+        st.markdown("---")
+        for row_data in driver_data:
+            col1, col2, col3, col4 = st.columns([3, 1, 1, 1])
+            with col1:
+                st.write(f"**{row_data['Driver']}**")
+            with col2:
+                st.metric("Connexion", row_data['⏱️'])
+            with col3:
+                st.metric("Livraison", row_data['🚚'])
+            with col4:
+                if st.button("🗑️ Supprimer", key=f"del_driver_{row_data['Index']}"):
+                    if delete_row("Users", row_data['Index']):
+                        st.success(f"✅ {row_data['Driver']} supprimé")
                         st.rerun()
 
 def show_client_page():
-    st.title(f"👤 Client : {st.session_state.user_name}")
+    st.title(f"Client : {st.session_state.user_name}")
     logout_button()
     
-    # Nouvelle course
-    st.header("➕ Publier une course")
+    st.header("➕ Nouvelle course")
     with st.form("new_trip"):
-        start = st.text_input("📍 Départ")
-        end = st.text_input("📍 Arrivée")
-        budget = st.number_input("💰 Budget (Ar)", min_value=1000, value=5000)
-        submitted = st.form_submit_button("🚀 Publier")
+        start = st.text_input("Départ")
+        end = st.text_input("Arrivée")
+        budget = st.number_input("Budget (Ar)", min_value=1000, value=5000)
+        submitted = st.form_submit_button("Publier")
     
     if submitted and start and end:
         new_trip = {
@@ -569,44 +599,60 @@ def show_client_page():
             "Driver": ""
         }
         append_row("Trips", new_trip)
-        
-        # Notifications INSTANTANÉES
-        add_notification("Admin", f"🆕 {start}→{end} ({budget}Ar)", len(fetch_data("Trips"))-1)
-        
-        st.success("✅ Course publiée - VISIBLE INSTANTANÉMENT !")
+        st.success("✅ Course publiée !")
         st.rerun()
     
-    # Mes courses
     st.header("📋 Mes courses")
     df_trips = fetch_data("Trips")
     my_trips = df_trips[df_trips["Client Phone"] == st.session_state.user_phone]
     
     if my_trips.empty:
         st.info("Aucune course")
-    else:
-        for idx, row in my_trips.iterrows():
-            st.markdown(f"""
-            <div class="trip-card">
-                <h4>{row['Start Point']} → {row['End Point']}</h4>
-                <p>💰 {row['Budget']} Ar</p>
-                <p><span class="status-{row['Status'].lower()}">{row['Status']}</span></p>
-                <p>Driver: {row['Driver'] or 'En attente'}</p>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            if row['Status'] in ["Available", "Accepted"]:
-                if st.button("❌ Annuler", key=f"cancel_{idx}"):
-                    update_row_field("Trips", idx, "Status", "Cancelled")
-                    update_row_field("Trips", idx, "Driver", "")
-                    add_notification("Admin", f"🚨 ANNULATION {row['Start Point']}→{row['End Point']}", idx)
-                    st.warning("✅ Annulée - VISIBLE INSTANTANÉMENT")
-                    st.rerun()
-
-def show_driver_page():
-    st.title(f"🚗 Driver : {st.session_state.user_name}")
-    logout_button()
+        return
     
-    # Notifications en haut
+    for idx, row in my_trips.iterrows():
+        status_class = {
+            "Available": "status-available",
+            "Accepted": "status-accepted", 
+            "Completed": "status-completed",
+            "Cancelled": "status-cancelled"
+        }.get(row['Status'], "")
+        
+        st.markdown(f"""
+        <div class="trip-card">
+            <h4>{row['Start Point']} → {row['End Point']}</h4>
+            <p>💰 {row['Budget']} Ar</p>
+            <p><span class="{status_class}">{row['Status']}</span></p>
+            <p>Driver: {row['Driver'] or 'En attente'}</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        if row['Status'] in ["Available", "Accepted"]:
+            if st.button("Annuler la course", key=f"cancel_{idx}"):
+                driver_name = row["Driver"]
+                update_row_field("Trips", idx, "Status", "Cancelled")
+                update_row_field("Trips", idx, "Driver", "")
+                
+                # Notification pour l'Admin
+                add_notification(
+                    target="Admin",
+                    message=f"🚨 Le client {row['Client Name']} a annulé la course {row['Start Point']} → {row['End Point']}",
+                    trip_index=idx
+                )
+                
+                # Notification pour le Driver (seulement s'il y en avait un)
+                if driver_name:
+                    add_notification(
+                        target=driver_name,
+                        message=f"❌ Le client a annulé la course {row['Start Point']} → {row['End Point']}",
+                        trip_index=idx
+                    )
+                
+                # Ces messages et le refresh doivent être DANS le bloc du bouton
+                st.warning("Course annulée")
+                st.rerun()
+            
+def show_driver_page():
     st.subheader("🔔 Notifications")
     notifs = get_unread_notifications(st.session_state.user_name)
     if not notifs.empty:
@@ -615,8 +661,21 @@ def show_driver_page():
             if st.button("OK", key=f"driver_notif_{idx}"):
                 mark_notification_read(idx)
                 st.rerun()
+
+    st.title(f"Driver : {st.session_state.user_name}")
+    logout_button()
     
     vehicle_complete = has_complete_vehicle_info(st.session_state.user_name)
+    vehicle_info = get_driver_vehicle_info(st.session_state.user_name)
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Véhicule", vehicle_info)
+    with col2:
+        st.metric("Profil", "✅ Complet" if vehicle_complete else "❌ Incomplet")
+    with col3:
+        st.metric("Connexion", get_connection_time(st.session_state.user_name))
+    
     if not vehicle_complete:
         st.error("⚠️ Complétez votre profil véhicule")
         return
@@ -627,53 +686,57 @@ def show_driver_page():
     my_accepted = df_trips[(df_trips["Status"] == "Accepted") & (df_trips["Driver"] == st.session_state.user_name)]
     if not my_accepted.empty:
         trip = my_accepted.iloc[0]
-        st.warning(f"🚨 EN COURS: {trip['Start Point']} → {trip['End Point']}")
+        st.warning(f"🚨 Course : {trip['Start Point']} → {trip['End Point']}")
         
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
         with col1:
             if st.button("🏁 Terminer", use_container_width=True):
                 update_row_field("Trips", my_accepted.index[0], "Status", "Completed")
                 reset_delivery_time(st.session_state.user_name)
-                add_notification("Admin", f"✅ TERMINÉE par {st.session_state.user_name}", my_accepted.index[0])
-                st.success("✅ Terminée - VISIBLE INSTANTANÉMENT")
+                st.success("✅ Course terminée")
                 st.rerun()
         with col2:
-            st.metric("⏱️ Course", get_delivery_time(st.session_state.user_name))
+            if st.button("❌ Annuler", use_container_width=True):
+                update_row_field("Trips", my_accepted.index[0], "Status", "Available")
+                update_row_field("Trips", my_accepted.index[0], "Driver", "")
+                reset_delivery_time(st.session_state.user_name)
+                st.warning("Course annulée")
+                st.rerun()
+        with col3:
+            st.metric("Livraison", get_delivery_time(st.session_state.user_name))
         return
     
     # Courses disponibles
     available = df_trips[df_trips["Status"] == "Available"]
-    st.header(f"📍 Disponibles ({len(available)}) - LIVE")
+    st.header(f"📍 Courses disponibles ({len(available)})")
     
     for idx, row in available.iterrows():
-        st.markdown(f"""
-        <div class="trip-card">
-            <h3>{row['Start Point']} → {row['End Point']}</h3>
-            <p>💰 {row['Budget']} Ar</p>
-            <p>{row['Client Name']} ({row['Client Phone']})</p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        if st.button("✅ ACCEPTER", key=f"accept_{idx}"):
-            update_row_field("Trips", idx, "Status", "Accepted")
-            update_row_field("Trips", idx, "Driver", st.session_state.user_name)
-            set_delivery_start_time(st.session_state.user_name)
-            add_notification("Admin", f"✅ ACCEPTÉE par {st.session_state.user_name}", idx)
-            st.success("✅ Acceptée - VISIBLE INSTANTANÉMENT")
-            st.rerun()
+        with st.container():
+            st.markdown(f"""
+            <div class="trip-card">
+                <h3>{row['Start Point']} → {row['End Point']}</h3>
+                <p>💰 {row['Budget']} Ar</p>
+                <p>Client: {row['Client Name']} ({row['Client Phone']})</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            if st.button("✅ Accepter", key=f"accept_{idx}"):
+                update_row_field("Trips", idx, "Status", "Accepted")
+                update_row_field("Trips", idx, "Driver", st.session_state.user_name)
+                set_delivery_start_time(st.session_state.user_name)
+                st.success("✅ Course acceptée !")
+                st.rerun()
 
 # =======================================================
 #               ROUTING PRINCIPAL
 # =======================================================
-# Auto-refresh UNIQUEMENT si connecté
-if st.session_state.logged_in and needs_refresh():
-    update_refresh_state()
-    st.rerun()
-
-# Charge données
 load_data()
 
-# Routing
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+if "page" not in st.session_state:
+    st.session_state.page = "login"
+
 if st.session_state.page == "register":
     show_register_page()
 elif st.session_state.logged_in:
